@@ -1,4 +1,7 @@
 *.pyc
+*.pyo
 *.egg-info
+*.lexres
 tmp/
 build/
+*.xpi
