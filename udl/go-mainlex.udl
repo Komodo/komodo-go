@@ -1,0 +1,74 @@
+# UDL (Komodo language lexing) for the Go language.
+
+language Go
+
+family markup
+initial IN_M_DEFAULT
+
+# Need to get into a state with keywords -- use SSL
+state IN_M_DEFAULT:
+/./ : redo, => IN_SSL_DEFAULT
+
+family ssl # client-side language
+
+# We have to specify the min and max styles we'll be referring to
+
+start_style SSL_DEFAULT
+end_style SSL_VARIABLE
+
+# If the language has keywords, specify which style needs to be transformed
+
+keyword_style SSL_IDENTIFIER => SSL_WORD
+
+keywords [
+            # Keywords
+            "break",
+            "default",
+            "func",
+            "interface",
+            "select",
+            "case",
+            "defer",
+            "go",
+            "map",
+            "struct",
+            "chan",
+            "else",
+            "goto",
+            "package",
+            "switch",
+            "const",
+            "fallthrough",
+            "if",
+            "range",
+            "type",
+            "continue",
+            "for",
+            "import",
+            "return",
+            "var",
+        ]
+
+# Some info on the styles we're using here
+
+pattern NMSTART = '_a-zA-Z\x80-\xff'   # inside cset
+pattern NMCHAR = '$NMSTART\d'   # inside cset
+pattern CS = '\w\d_\x80-\xff'   # inside cset
+pattern WS = '\s\t\r\n'           # inside cset
+pattern OP = '!\#%&\(\)\*\+,-\.\/:;<=>\?@\[\]\^\{\}~|'
+
+
+state IN_SSL_DEFAULT:
+
+# One-line comments end at either end-of-line or '?>'
+# This is a hard-wired transition
+
+'//' : paint(upto, SSL_DEFAULT),  => IN_SSL_COMMENT_1
+
+'/*' : paint(upto, SSL_DEFAULT), => IN_SSL_COMMENT_2
+/\$[$NMSTART][$CS]*/ : paint(upto, SSL_DEFAULT), paint(include, SSL_VARIABLE)
+
+/[$WS]+/  : #stay
+
+'"' : paint(upto, SSL_DEFAULT), => IN_SSL_DSTRING
+'\'' : paint(upto, SSL_DEFAULT), => IN_SSL_SSTRING
