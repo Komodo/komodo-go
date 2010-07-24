@@ -1,7 +1,8 @@
 # Immediate TODOs
 
-- Push to github.
 - Upload to Komodo addons site <http://community.activestate.com/addons>
+- Screenshot in readme.
+- Icon for the extension.
 
 
 # Longer term projects
