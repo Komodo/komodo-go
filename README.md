@@ -1,5 +1,5 @@
-Komodo (activestate.com/komodo) extension to add support for the Go language
-(golang.org).
+[Komodo](http://www.activestate.com/komodo) extension to add support for the [Go
+language](http://golang.org).
 
 This project lives on github at: <http://github.com/trentm/komodo-go>
 
