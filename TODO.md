@@ -6,6 +6,8 @@
 
 # Longer term projects
 
+- Lots to finish in syntax highlighting from <http://golang.org/doc/go_spec.html>
+  The original state (still current?) is almost a straight copy of Maya's UDL.
 - Add tools: compiling go code, compile and run
 - Hook in background syntax checking: just using the compiler?
 - Add a Go prefs panel to assist with setting up env for using Go?

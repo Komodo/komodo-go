@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+"""Build a Go program.
+
+Usage: 
+    gob [LIB-FILES.go] MAIN-FILE.go
+
+Why? Because the '6g', '6l' et al namings for Go language build tools are
+obtuse.
+"""
+
+import os
+import sys
+
+
+def gob(*paths):
+    #TODO: determine compiler/linker name for the curr platform, currently
+    #      presuming darwin/amd64
+    for path in paths:
+        os.system("6g %s" % path)
+    base = os.path.splitext(path)[0]
+    os.system("6l -o %s %s.6" % (base, base)) 
+
+if __name__ == "__main__":
+    sys.exit( gob(*sys.argv[1:]) )
+
