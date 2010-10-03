@@ -84,6 +84,13 @@ def scan_buf(buf, mtime=None, lang="Go"):
     blob = ET.SubElement(file, "scope", ilk="blob", lang=lang,
                          name=os.path.basename(path))
 
+    #TODO:
+    # - A 'package' -> 'blob'. Problem is a single go package can be from
+    #   multiple files... so really would want `lib.get_blobs(name)` instead
+    #   of `lib.get_blob(name)` in the codeintel API. How does Ruby deal with
+    #   this? Perl?
+    # - How do the multi-platform stdlib syscall_linux.go et al fit together?
+    
     # Dev Note:
     # This is where you process the Go content and add CIX elements
     # to 'blob' as per the CIX schema (cix-2.0.rng). Use the
