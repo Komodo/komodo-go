@@ -7,10 +7,15 @@ I haven't yet put up a build to the [Komodo addons
 site](http://community.activestate.com/addons) so you'll have to build it
 yourself for now. I plan to upload something soon.
 
+# Building
+Find the 'koext' binary that is within your komodo install (within sdk/bin).
+Run it from the repository root, it should produce an .xpi for you.
+
 # Features
 
 - a first stab at syntax highlighting (including folding)
 - file-type detection for .go files
+- linting
 
 Only the starter structure for codeintel support is there so no
 autocomplete/calltips/code-browser yet.
