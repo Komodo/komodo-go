@@ -16,7 +16,5 @@ Run it from the repository root, it should produce an .xpi for you.
 - a first stab at syntax highlighting (including folding)
 - file-type detection for .go files
 - linting
-
-Only the starter structure for codeintel support is there so no
-autocomplete/calltips/code-browser yet.
+- codeintel via gocode: github.com/nsf/gocode
 
