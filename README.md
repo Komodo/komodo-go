@@ -1,6 +1,8 @@
 [Komodo](http://www.activestate.com/komodo) extension to add support for the [Go
 language](http://golang.org).
 
+![](https://github.com/traviscline/komodo-go/raw/master/example.png)
+
 This project lives on github at: <http://github.com/trentm/komodo-go>
 
 I haven't yet put up a build to the [Komodo addons
