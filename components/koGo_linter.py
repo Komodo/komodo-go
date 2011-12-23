@@ -68,6 +68,16 @@ class KoGoLinter(object):
             getService(components.interfaces.koISysUtils)
         self._koDirSvc = components.classes["@activestate.com/koDirs;1"].\
             getService(components.interfaces.koIDirs)
+        self.go_compiler = self._determine_go_compiler()
+
+    def _determine_go_compiler(self):
+        for option in ('6g', '8g', '5g'):
+            try:
+                subprocess.call([option], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                return option
+            except OSError:
+                pass
+        log.error('No go compiler found. Tried 6g, 8g, 5g')
 
     def lint(self, request):
         log.info(request)
@@ -80,31 +90,42 @@ class KoGoLinter(object):
         if not text.strip():
             return None
         # consider adding lint preferences? maybe for compiler selection, paths, etc?
-        results = koLintResults()
-        p = process.ProcessOpen(['gotype'], cwd=request.cwd, env=koprocessutils.getUserEnv())
-        output, errors = p.communicate(text)
-        log.debug("gotype output: output:[%s], error:[%s]", output, errors)
-        if errors:
-            for line in errors.splitlines():
-                results.addResult(self._buildResult(text, line))
-        if output:
-            results.addResult(self._buildResult(text, "Unexpected error"))
+
+        # Save the current buffer to a temporary file.
+        tempfile_name = tempfile.mktemp()
+        fout = open(tempfile_name, 'wb')
+        try:
+            fout.write(text)
+            fout.close()
+            env = koprocessutils.getUserEnv()
+            results = koLintResults()
+            p = process.ProcessOpen([self.go_compiler, tempfile_name], cwd=request.cwd, env=env, stdin=None)
+            output, error = p.communicate()
+            log.debug("%s output: output:[%s], error:[%s]", self.go_compiler, output, error)
+            retval = p.returncode
+        finally:
+            os.unlink(tempfile_name)
+        if retval == 1:
+            if output:
+                for line in output.splitlines():
+                    results.addResult(self._buildResult(text, line, tempfile_name))
+            else:
+                results.addResult(self._buildResult(text, "Unexpected error"))
         return results
 
-    def _buildResult(self, text, message):
+    def _buildResult(self, text, message, tempfile_name=None):
         r = KoLintResult()
         r.severity = r.SEV_ERROR
         r.description = message
         
-        m = re.match('<standard input>:(\d+):(\d+): (.*)', message)
+        m = re.match('%s:(\d+): (.*)' % tempfile_name or '', message)
         if m:
-            line_no, column_no, error_message = m.groups()
-            line_no, column_no = int(line_no), int(column_no)
+            line_no, error_message = m.groups()
+            line_no = int(line_no)
             line_contents = text.splitlines()[int(line_no)-1].rstrip()
             r.description = error_message
             r.lineStart = r.lineEnd = line_no
-            #r.columnStart = len(line_contents) - len(line_contents.strip()) + 1
-            r.columnStart = column_no
+            r.columnStart = len(line_contents) - len(line_contents.strip()) + 1
             r.columnEnd = len(line_contents) + 1
 
         return r
