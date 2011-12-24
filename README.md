@@ -1,7 +1,7 @@
 [Komodo](http://www.activestate.com/komodo) extension to add support for the [Go
 language](http://golang.org).
 
-![](https://github.com/traviscline/komodo-go/raw/master/example.png)
+![Example screenshow](https://github.com/traviscline/komodo-go/raw/master/example.png)
 
 This project lives on github at: <http://github.com/trentm/komodo-go>
 
@@ -18,5 +18,5 @@ Run it from the repository root, it should produce an .xpi for you.
 - a first stab at syntax highlighting (including folding)
 - file-type detection for .go files
 - linting
-- codeintel via gocode: github.com/nsf/gocode
+- codeintel via [Gocode](https://github.com/nsf/gocode)
 
