@@ -10,8 +10,10 @@ site](http://community.activestate.com/addons) so you'll have to build it
 yourself for now. I plan to upload something soon.
 
 # Building
-Find the 'koext' binary that is within your komodo install (within sdk/bin).
-Run it from the repository root, it should produce an .xpi for you.
+
+- Find the 'koext' binary that is within your Komodo install (within sdk/bin).
+- Run 'koext build' from the repository root, it should produce an .xpi for you.
+- Open this .xpi with Komodo to install it.
 
 # Features
 
