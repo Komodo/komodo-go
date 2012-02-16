@@ -38,7 +38,6 @@
 
 import os
 import re
-import sys
 import logging
 import process
 import tempfile
@@ -71,13 +70,12 @@ class KoGoLinter(object):
         self.go_compiler = self._determine_go_compiler()
 
     def _determine_go_compiler(self):
-        for option in ('6g', '8g', '5g'):
-            try:
-                subprocess.call([option], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                return option
-            except OSError:
-                pass
-        log.error('No go compiler found. Tried 6g, 8g, 5g')
+        try:
+            subprocess.call(['go'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return 'go'
+        except OSError:
+            pass
+        log.error('"go" binary not found.')
 
     def lint(self, request):
         log.info(request)
@@ -87,30 +85,34 @@ class KoGoLinter(object):
 
     def lint_with_text(self, request, text):
         log.info(request)
+        logging.shit = [request, text]
+        if not self.go_compiler:
+            return
         if not text.strip():
             return None
         # consider adding lint preferences? maybe for compiler selection, paths, etc?
 
         # Save the current buffer to a temporary file.
-        tempfile_name = tempfile.mktemp()
+        handle, tempfile_name = tempfile.mkstemp(suffix='.go', prefix='~', dir=request.cwd)
         fout = open(tempfile_name, 'wb')
+        short_tempfile_name = os.path.basename(tempfile_name)
         try:
             fout.write(text)
             fout.close()
             env = koprocessutils.getUserEnv()
             results = koLintResults()
-            p = process.ProcessOpen([self.go_compiler, tempfile_name], cwd=request.cwd, env=env, stdin=None)
+            p = process.ProcessOpen([self.go_compiler, 'build', short_tempfile_name], cwd=request.cwd, env=env, stdin=None)
             output, error = p.communicate()
             log.debug("%s output: output:[%s], error:[%s]", self.go_compiler, output, error)
             retval = p.returncode
         finally:
             os.unlink(tempfile_name)
-        if retval == 1:
+        if retval != 0:
             if output:
-                for line in output.splitlines():
+                for line in output.splitlines()[1:]:
                     results.addResult(self._buildResult(text, line, tempfile_name))
             else:
-                results.addResult(self._buildResult(text, "Unexpected error"))
+                    results.addResult(self._buildResult(text, "Unexpected error"))
         return results
 
     def _buildResult(self, text, message, tempfile_name=None):

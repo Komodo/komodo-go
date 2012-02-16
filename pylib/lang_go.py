@@ -43,6 +43,7 @@ class GoLangIntel(CitadelLangIntel,
     lang = lang
     calltip_trg_chars = tuple('(')
     trg_chars = tuple(" (.")
+    
     completion_name_mapping = {
         'var': 'variable',
         'func': 'function',
@@ -51,7 +52,18 @@ class GoLangIntel(CitadelLangIntel,
         'const': 'constant',
     }
 
-            
+    def __init__(self, *args, **kwargs):
+        self.gocode_present = self.check_for_gocode()
+
+    def check_for_gocode(self):
+        try:
+            env = koprocessutils.getUserEnv()
+            process.ProcessOpen(['gocode'], env=env)
+            return True
+        except OSError:
+            log.error('"gocode" binary not found, cannot offer completion for golang.')
+            return False
+        
     def codeintel_type_from_completion_data(self, completion_entry):
         """Given a dictionary containing 'class' and 'type' keys return a
         codeintel type. Used for selecting icon in completion list.
@@ -69,6 +81,9 @@ class GoLangIntel(CitadelLangIntel,
             print "pos: %d" % (pos, )
             print "ch: %r" % (buf.accessor.char_at_pos(pos), )
             print "curr_pos: %d" % (curr_pos, )
+
+        if not self.gocode_present:
+            return
 
         if pos != curr_pos and self._last_trg_type == "names":
             # The last trigger type was a 3-char trigger "names", we must try
@@ -123,6 +138,8 @@ class GoLangIntel(CitadelLangIntel,
         return trg
 
     def async_eval_at_trg(self, buf, trg, ctlr):
+        if not self.gocode_present:
+            return
         if _xpcom_:
             trg = UnwrapObject(trg)
             ctlr = UnwrapObject(ctlr)
