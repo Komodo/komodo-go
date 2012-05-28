@@ -67,15 +67,13 @@ class KoGoLinter(object):
             getService(components.interfaces.koISysUtils)
         self._koDirSvc = components.classes["@activestate.com/koDirs;1"].\
             getService(components.interfaces.koIDirs)
-        self.go_compiler = self._determine_go_compiler()
+        self._check_for_go_binary()
 
-    def _determine_go_compiler(self):
+    def _check_for_go_binary(self):
         try:
             subprocess.call(['go'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return 'go'
         except OSError:
-            pass
-        log.error('"go" binary not found.')
+            log.error('"go" binary not found.')
 
     def lint(self, request):
         log.info(request)
@@ -85,32 +83,39 @@ class KoGoLinter(object):
 
     def lint_with_text(self, request, text):
         log.info(request)
-        logging.shit = [request, text]
-        if not self.go_compiler:
-            return
+        log.debug(text)
         if not text.strip():
             return None
         # consider adding lint preferences? maybe for compiler selection, paths, etc?
 
         # Save the current buffer to a temporary file.
-        handle, tempfile_name = tempfile.mkstemp(suffix='.go', prefix='~', dir=request.cwd)
-        fout = open(tempfile_name, 'wb')
-        short_tempfile_name = os.path.basename(tempfile_name)
+        _, source_filename = tempfile.mkstemp(prefix='~kogo', suffix='.go', dir=request.cwd)
+        _, dest_filename = tempfile.mkstemp()
+        source_file_shortname = os.path.basename(source_filename)
+
+        compilation_command = ['go', 'build', '-o', dest_filename, source_file_shortname]
         try:
-            fout.write(text)
-            fout.close()
+            temp_source_file = open(source_filename, 'w')
+            temp_source_file.write(text)
+            temp_source_file.close()
             env = koprocessutils.getUserEnv()
             results = koLintResults()
-            p = process.ProcessOpen([self.go_compiler, 'build', short_tempfile_name], cwd=request.cwd, env=env, stdin=None)
+
+            log.info('Running ' + ' '.join(compilation_command))
+            p = process.ProcessOpen(compilation_command, cwd=request.cwd, env=env, stdin=None)
             output, error = p.communicate()
-            log.debug("%s output: output:[%s], error:[%s]", self.go_compiler, output, error)
+            log.debug("output: output:[%s], error:[%s]", output, error)
             retval = p.returncode
         finally:
-            os.unlink(tempfile_name)
+            os.unlink(source_filename)
+            try:
+                os.unlink(dest_filename)
+            except OSError:
+                pass
         if retval != 0:
             if output:
                 for line in output.splitlines()[1:]:
-                    results.addResult(self._buildResult(text, line, tempfile_name))
+                    results.addResult(self._buildResult(text, line, source_file_shortname))
             else:
                     results.addResult(self._buildResult(text, "Unexpected error"))
         return results
@@ -120,7 +125,7 @@ class KoGoLinter(object):
         r.severity = r.SEV_ERROR
         r.description = message
         
-        m = re.match('%s:(\d+): (.*)' % tempfile_name or '', message)
+        m = re.match('./%s:(\d+): (.*)' % tempfile_name or '', message)
         if m:
             line_no, error_message = m.groups()
             line_no = int(line_no)
