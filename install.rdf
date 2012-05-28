@@ -4,7 +4,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>go_language@activestate.com</em:id>
     <em:name>Go Language</em:name>
-    <em:version>1.1.0</em:version>
+    <em:version>1.2.0</em:version>
     <em:description>Go language support for Komodo</em:description>
     <em:creator>Trent Mick</em:creator>
     <em:homepageURL></em:homepageURL>
@@ -14,14 +14,14 @@
       <Description>
         <em:id>{36E66FA0-F259-11D9-850E-000D935D3368}</em:id>
         <em:minVersion>5.0</em:minVersion>
-        <em:maxVersion>6.*</em:maxVersion>
+        <em:maxVersion>7.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <em:targetApplication> <!-- Komodo Edit -->
       <Description>
         <em:id>{b1042fb5-9e9c-11db-b107-000d935d3368}</em:id>
         <em:minVersion>5.0</em:minVersion>
-        <em:maxVersion>6.*</em:maxVersion>
+        <em:maxVersion>7.*</em:maxVersion>
       </Description>
     </em:targetApplication>
   </Description>
