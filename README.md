@@ -14,6 +14,7 @@ yourself for now. I plan to upload something soon.
 - Find the 'koext' binary that is within your Komodo install (within sdk/bin).
 - Run 'koext build' from the repository root, it should produce an .xpi for you.
 - Open this .xpi with Komodo to install it.
+- Ensure 'go' and 'gocode' are on the PATH configured in your overall or project-specific Komodo settings
 
 # Features
 
