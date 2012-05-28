@@ -114,18 +114,19 @@ class KoGoLinter(object):
                 pass
         if retval != 0:
             if output:
+                output = output.replace(source_file_shortname, request.koDoc.baseName)
                 for line in output.splitlines()[1:]:
-                    results.addResult(self._buildResult(text, line, source_file_shortname))
+                    results.addResult(self._buildResult(text, line, request.koDoc.baseName))
             else:
                     results.addResult(self._buildResult(text, "Unexpected error"))
         return results
 
-    def _buildResult(self, text, message, tempfile_name=None):
+    def _buildResult(self, text, message, filename=None):
         r = KoLintResult()
         r.severity = r.SEV_ERROR
         r.description = message
         
-        m = re.match('./%s:(\d+): (.*)' % tempfile_name or '', message)
+        m = re.match('./%s:(\d+): (.*)' % filename or '', message)
         if m:
             line_no, error_message = m.groups()
             line_no = int(line_no)
