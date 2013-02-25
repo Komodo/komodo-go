@@ -112,6 +112,7 @@ class KoGoLinter(object):
                 os.unlink(dest_filename)
             except OSError:
                 pass
+            temp_source_file.close()
         if retval != 0:
             if output:
                 output = output.replace(source_file_shortname, request.koDoc.baseName)

@@ -149,7 +149,9 @@ class GoLangIntel(CitadelLangIntel,
             pos = pos - 1
 
         env = koprocessutils.getUserEnv()
-        p = process.ProcessOpen(['gocode', '-f=json', 'autocomplete', buf.path, 'c%s' % pos], env=env)
+        cmd = ['gocode', '-f=json', 'autocomplete', buf.path, '%s' % pos]
+        p = process.ProcessOpen(cmd, env=env)
+
         output, error = p.communicate(buf.accessor.text)
         
         try:
