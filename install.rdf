@@ -4,7 +4,7 @@
   <Description about="urn:mozilla:install-manifest">
     <em:id>go_language@activestate.com</em:id>
     <em:name>Go Language</em:name>
-    <em:version>1.2.0</em:version>
+    <em:version>1.2.1</em:version>
     <em:description>Go language support for Komodo</em:description>
     <em:creator>Trent Mick</em:creator>
     <em:homepageURL></em:homepageURL>

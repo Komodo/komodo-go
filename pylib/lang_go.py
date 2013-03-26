@@ -41,6 +41,7 @@ class GoLangIntel(CitadelLangIntel,
                           ProgLangTriggerIntelMixin,
                           PythonCITDLExtractorMixin):
     lang = lang
+    citdl_from_literal_type = {"string": "string"}
     calltip_trg_chars = tuple('(')
     trg_chars = tuple(" (.")
     

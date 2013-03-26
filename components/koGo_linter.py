@@ -38,6 +38,7 @@
 
 import os
 import re
+import shutil
 import logging
 import process
 import tempfile
@@ -89,33 +90,33 @@ class KoGoLinter(object):
         # consider adding lint preferences? maybe for compiler selection, paths, etc?
 
         # Save the current buffer to a temporary file.
-        _, source_filename = tempfile.mkstemp(prefix='~kogo', suffix='.go', dir=request.cwd)
-        _, dest_filename = tempfile.mkstemp()
-        source_file_shortname = os.path.basename(source_filename)
+        base_temp_dir = tempfile.mkdtemp(prefix='kogo')
+        temp_dir = os.path.join(base_temp_dir,'go')
 
-        compilation_command = ['go', 'build', '-o', dest_filename, source_file_shortname]
+        def non_go_files(dir,files):
+            result = []
+            for file in files:
+                if not file.endswith('.go'):
+                    result.append(file)
+            return result
+
+        shutil.copytree(request.cwd, temp_dir, ignore=non_go_files)
+
+        compilation_command = ['go', 'build']
         try:
-            temp_source_file = open(source_filename, 'w')
-            temp_source_file.write(text)
-            temp_source_file.close()
             env = koprocessutils.getUserEnv()
             results = koLintResults()
 
             log.info('Running ' + ' '.join(compilation_command))
-            p = process.ProcessOpen(compilation_command, cwd=request.cwd, env=env, stdin=None)
+            p = process.ProcessOpen(compilation_command, cwd=temp_dir, env=env, stdin=None)
             output, error = p.communicate()
             log.debug("output: output:[%s], error:[%s]", output, error)
             retval = p.returncode
         finally:
-            os.unlink(source_filename)
-            try:
-                os.unlink(dest_filename)
-            except OSError:
-                pass
-            temp_source_file.close()
+            shutil.rmtree(base_temp_dir, ignore_errors=True)
+
         if retval != 0:
             if output:
-                output = output.replace(source_file_shortname, request.koDoc.baseName)
                 for line in output.splitlines()[1:]:
                     results.addResult(self._buildResult(text, line, request.koDoc.baseName))
             else:
@@ -127,9 +128,12 @@ class KoGoLinter(object):
         r.severity = r.SEV_ERROR
         r.description = message
         
-        m = re.match('./%s:(\d+): (.*)' % filename or '', message)
+        m = re.match('./(.+\.go):(\d+): (.*)', message)
         if m:
-            line_no, error_message = m.groups()
+            lint_message_file, line_no, error_message = m.groups()
+            if lint_message_file != filename:
+                r.description = message
+                return r
             line_no = int(line_no)
             line_contents = text.splitlines()[int(line_no)-1].rstrip()
             r.description = error_message
