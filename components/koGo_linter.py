@@ -116,8 +116,11 @@ class KoGoLinter(object):
             shutil.rmtree(base_temp_dir, ignore_errors=True)
 
         if retval != 0:
-            if output:
-                for line in output.splitlines()[1:]:
+            all_output = output.splitlines() + error.splitlines()
+            if all_output:
+                for line in all_output:
+                    if line and line[0] == '#':
+                        continue
                     results.addResult(self._buildResult(text, line, request.koDoc.baseName))
             else:
                     results.addResult(self._buildResult(text, "Unexpected error"))

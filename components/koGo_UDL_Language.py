@@ -24,6 +24,12 @@ class KoGoLanguage(KoUDLLanguage):
     defaultExtension = '.go'
     lang_from_udl_family = {"SSL": "Go"}
 
+    commentDelimiterInfo = {
+        "line": [ "//" ],
+        "block": [ ("/*", "*/") ]
+    }
+    supportsSmartIndent = "brace"
+
     sample = """package main
 
 import "fmt"
