@@ -72,7 +72,7 @@ state IN_SSL_DEFAULT:
 
 '"' : paint(upto, SSL_DEFAULT), => IN_SSL_DSTRING
 '\'' : paint(upto, SSL_DEFAULT), => IN_SSL_SSTRING
-
+'`' : paint(upto, SSL_DEFAULT), => IN_SSL_QSTRING
 
 # Go process a number, try to do it in regexes
 # octal and hex first
@@ -124,6 +124,11 @@ state IN_SSL_SSTRING:
 /\\./ : #
 /[\r\n]/ : #stay, php strings are multi-line
 # Verify we create a \z
+
+state IN_SSL_QSTRING:
+'`' : paint(include, SSL_STRING), => IN_SSL_DEFAULT
+/\\./ : #
+/[\r\n]/ : #stay, php strings are multi-line
 
 ################ Numbers ################
 
