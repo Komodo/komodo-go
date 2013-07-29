@@ -2,13 +2,16 @@
 
 """Go language support for codeintel."""
 
+import os
+import sys
 import json
 import logging
 import process
-import koprocessutils
+import time
+import ciElementTree as ET
 from codeintel2.accessor import AccessorCache
 from codeintel2.citadel import CitadelLangIntel
-from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, CILEDriver
+from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, CILEDriver, Definition
 from codeintel2.langintel import ParenStyleCalltipIntelMixin, ProgLangTriggerIntelMixin, PythonCITDLExtractorMixin
 from codeintel2.udl import UDLBuffer
 
@@ -36,6 +39,7 @@ class GoLexer(UDLLexer):
 
 #---- LangIntel class
 
+
 class GoLangIntel(CitadelLangIntel,
                           ParenStyleCalltipIntelMixin,
                           ProgLangTriggerIntelMixin,
@@ -53,18 +57,6 @@ class GoLangIntel(CitadelLangIntel,
         'const': 'constant',
     }
 
-    def __init__(self, *args, **kwargs):
-        self.gocode_present = self.check_for_gocode()
-
-    def check_for_gocode(self):
-        try:
-            env = koprocessutils.getUserEnv()
-            process.ProcessOpen(['gocode'], env=env)
-            return True
-        except OSError:
-            log.error('"gocode" binary not found, cannot offer completion for golang.')
-            return False
-        
     def codeintel_type_from_completion_data(self, completion_entry):
         """Given a dictionary containing 'class' and 'type' keys return a
         codeintel type. Used for selecting icon in completion list.
@@ -82,9 +74,6 @@ class GoLangIntel(CitadelLangIntel,
             print "pos: %d" % (pos, )
             print "ch: %r" % (buf.accessor.char_at_pos(pos), )
             print "curr_pos: %d" % (curr_pos, )
-
-        if not self.gocode_present:
-            return
 
         if pos != curr_pos and self._last_trg_type == "names":
             # The last trigger type was a 3-char trigger "names", we must try
@@ -139,22 +128,78 @@ class GoLangIntel(CitadelLangIntel,
         return trg
 
     def async_eval_at_trg(self, buf, trg, ctlr):
-        if not self.gocode_present:
-            return
         if _xpcom_:
             trg = UnwrapObject(trg)
             ctlr = UnwrapObject(ctlr)
-        
+
+        # if a definition lookup, use godef
+        if trg.type == "defn":
+            return self.lookup_defn(buf, trg, ctlr)
+
+        # otherwise use gocode
+        return self.invoke_gocode(buf, trg, ctlr)
+
+    def lookup_defn(self, buf, trg, ctlr):
+        cmd = ['godef', '-i=true', '-t=true', '-f=%s' % buf.path, '-o=%s' % trg.pos]
+        log.debug("running [%s]", cmd)
+        try:
+            p = process.ProcessOpen(cmd, env=buf.env.get_all_envvars())
+        except OSError, e:
+            log.error("Error executing '%s': %s", cmd[0], e)
+            return
+
+        output, error = p.communicate(buf.accessor.text)
+        if error:
+            log.debug("'gocode' stderr: [%s]", error)
+            return
+
+        lines = output.splitlines()
+        log.debug(output)
+
+        defparts = lines[0].rsplit(":",2)
+
+        if len(defparts) == 2:
+            # current file
+            path = buf.path
+            line = defparts[0]
+        else:
+            # other file
+            path = defparts[0]
+            line = defparts[1]
+        name, typeDesc = lines[1].split(' ', 1)
+
+        d = Definition("Go",path,
+                       blobname=None,
+                       lpath=None,
+                       name=name,
+                       line=line,
+                       ilk='function' if typeDesc.startswith('func') else typeDesc,
+                       citdl=None,
+                       signature=typeDesc,
+                       doc='\n'.join(lines[1:]),
+                    )
+        log.debug(d)
+        ctlr.start(buf, trg)
+        ctlr.set_defns([d])
+        ctlr.done("success")
+
+    def invoke_gocode(self, buf, trg, ctlr):
         pos = trg.pos
         if trg.type == "call-signature":
             pos = pos - 1
 
-        env = koprocessutils.getUserEnv()
         cmd = ['gocode', '-f=json', 'autocomplete', buf.path, '%s' % pos]
-        p = process.ProcessOpen(cmd, env=env)
+        log.debug("running [%s]", cmd)
+        try:
+            p = process.ProcessOpen(cmd, env=buf.env.get_all_envvars())
+        except OSError, e:
+            log.error("Error executing '%s': %s", cmd[0], e)
+            return
 
         output, error = p.communicate(buf.accessor.text)
-        
+        if error:
+            log.warn("'%s' stderr: [%s]", cmd[0], error)
+
         try:
             completion_data = json.loads(output)
             completion_data = completion_data[1]
@@ -166,7 +211,6 @@ class GoLangIntel(CitadelLangIntel,
             return
 
         ctlr.start(buf, trg)
-        
         completion_data = [x for x in completion_data if x['class'] != 'PANIC'] # remove PANIC entries if present
         if trg.type == "object-members":
             ctlr.set_cplns([(self.codeintel_type_from_completion_data(entry), entry['name']) for entry in completion_data])
@@ -211,10 +255,61 @@ class GoBuffer(UDLBuffer):
 class GoCILEDriver(CILEDriver):
     lang = lang
 
-    def scan_purelang(self, buf):
-        import cile_go
-        return cile_go.scan_buf(buf)
+    def scan_purelang(self, buf, mtime=None, lang="Go"):
+        """Scan the given GoBuffer return an ElementTree (conforming
+        to the CIX schema) giving a summary of its code elements.
 
+        @param buf {GoBuffer} is the Go buffer to scan
+        @param mtime {int} is a modified time for the file (in seconds since
+            the "epoch"). If it is not specified the _current_ time is used.
+            Note that the default is not to stat() the file and use that
+            because the given content might not reflect the saved file state.
+        """
+        # Dev Notes:
+        # - This stub implementation of the Go CILE return an "empty"
+        #   summary for the given content, i.e. CIX content that says "there
+        #   are no code elements in this Go content".
+        # - Use the following command (in the extension source dir) to
+        #   debug/test your scanner:
+        #       codeintel scan -p -l Go <example-Go-file>
+        #   "codeintel" is a script available in the Komodo SDK.
+        log.info("scan '%s'", buf.path)
+        if mtime is None:
+            mtime = int(time.time())
+
+        # The 'path' attribute must use normalized dir separators.
+        if sys.platform.startswith("win"):
+            path = buf.path.replace('\\', '/')
+        else:
+            path = buf.path
+
+        tree = ET.Element("codeintel", version="2.0",
+                          xmlns="urn:activestate:cix:2.0")
+        file = ET.SubElement(tree, "file", lang=lang, mtime=str(mtime))
+        blob = ET.SubElement(file, "scope", ilk="blob", lang=lang,
+                             name=os.path.basename(path))
+
+        #TODO:
+        # - A 'package' -> 'blob'. Problem is a single go package can be from
+        #   multiple files... so really would want `lib.get_blobs(name)` instead
+        #   of `lib.get_blob(name)` in the codeintel API. How does Ruby deal with
+        #   this? Perl?
+        # - How do the multi-platform stdlib syscall_linux.go et al fit together?
+
+        # Dev Note:
+        # This is where you process the Go content and add CIX elements
+        # to 'blob' as per the CIX schema (cix-2.0.rng). Use the
+        # "buf.accessor" API (see class Accessor in codeintel2.accessor) to
+        # analyze. For example:
+        # - A token stream of the content is available via:
+        #       buf.accessor.gen_tokens()
+        #   Use the "codeintel html -b <example-Go-file>" command as
+        #   a debugging tool.
+        # - "buf.accessor.text" is the whole content of the file. If you have
+        #   a separate tokenizer/scanner tool for Go content, you may
+        #   want to use it.
+
+        return tree
 
 
 
@@ -229,7 +324,5 @@ def register(mgr):
         langintel_class=GoLangIntel,
         import_handler_class=None,
         cile_driver_class=GoCILEDriver,
-        # Dev Note: set to false if this language does not support
-        # autocomplete/calltips.
         is_cpln_lang=True)
 

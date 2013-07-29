@@ -15,11 +15,16 @@ yourself for now. I plan to upload something soon.
 - Run 'koext build' from the repository root, it should produce an .xpi for you.
 - Open this .xpi with Komodo to install it.
 - Ensure 'go' and 'gocode' are on the PATH configured in your overall or project-specific Komodo settings
+- For completion and go to definition ensure 'gocode' and 'godef' are on your paths as well.
+- To install gocode and godef:
+  - $ go get github.com/nsf/gocode
+  - $ go get code.google.com/p/rog-go/exp/cmd/godef
 
 # Features
 
-- a first stab at syntax highlighting (including folding)
-- file-type detection for .go files
-- linting
-- codeintel via [Gocode](https://github.com/nsf/gocode)
+- Syntax highlighting (including folding)
+- File-type detection for .go files
+- Linting
+- Codeintel via [Gocode](https://github.com/nsf/gocode)
+- Jump to definition via [godef](http://godoc.org/code.google.com/p/rog-go/exp/cmd/godef)
 
