@@ -28,3 +28,17 @@ yourself for now. I plan to upload something soon.
 - Codeintel via [Gocode](https://github.com/nsf/gocode)
 - Jump to definition via [godef](http://godoc.org/code.google.com/p/rog-go/exp/cmd/godef)
 
+# Komodo dependencies
+
+- Need the patched LexCPP.cxx lexer, which handles backquoted raw strings (this removed the need for Go to be a UDL-based language)
+- Need the following patch to src/codeintel/src/komodo/koCodeIntel.py:
+    @@ -2143,6 +2142,9 @@
+                 "python4ExtraPaths": T(),
+                 "ruby": T(komodo_name="rubyDefaultInterpreter"),
+                 "rubyExtraPaths": T(),
+    +            "golangDefaultLocation": T(),
+    +            "gocodeDefaultLocation": T(),
+    +            "godefDefaultLocation": T(),
+             }
+             # Set the result on the class, no need to recompute
+             setattr(self.__class__, "_prefs_allowed", result)
