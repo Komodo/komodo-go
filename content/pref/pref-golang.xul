@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!DOCTYPE window SYSTEM "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
+  <!ENTITY % prefDTD SYSTEM "chrome://komodo/locale/pref/pref.dtd">
+  %prefDTD;
+  <!ENTITY % prefDTD.INTERNAL SYSTEM "chrome://komodo/locale/pref-internal.dtd">
+  %prefDTD.INTERNAL;
+  <!ENTITY % golangDTD SYSTEM "chrome://golang/locale/golang.dtd">
+  %golangDTD;
+]>
+
+<!-- Copyright (c) 2000-2006 ActiveState Software Inc.
+     See the file LICENSE.txt for licensing information. -->
+
+<?xml-stylesheet href="chrome://komodo/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/global/global.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/bindings/buttons.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/bindings/widgets.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/bindings/listbox.css" type="text/css"?>
+<?xml-stylesheet href="chrome://komodo/skin/prefs/prefs.css" type="text/css"?>
+
+<window xmlns:html="http://www.w3.org/1999/xhtml"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        class="kodialog"
+        orient="vertical"
+        onload="PrefGolang_OnLoad();">
+
+    <script src="chrome://xtk/content/xtk.js" type="application/x-javascript;version=1.7"/>
+    <script src="chrome://komodo/content/library/logging.js" type="application/x-javascript;version=1.7"/>
+    <script src="chrome://komodo/content/library/filepickers.js" type="application/x-javascript;version=1.7"/>
+    <script src="chrome://golang/content/pref/pref-golang.js" type="application/x-javascript;version=1.7"/>
+    <script src="chrome://komodo/content/pref/koPrefUtils.js" type="application/x-javascript;version=1.7" />
+    <script src="chrome://komodo/content/library/dialogs.js" type="application/x-javascript;version=1.7"/>
+    <script type="application/x-javascript;version=1.7" src="chrome://komodo/content/library/windowManager.js"/>
+
+    <!-- This main vbox is to ensure *all* the pref widgets are accessible,
+         as it adds a scrollbar when the contents are too long. -->
+    <vbox id="golang-prefs-vbox" flex="1" class="autoscroll">
+
+        <groupbox orient="vertical">
+            <caption label="&defaultGolangLocation.label;"/>
+            <vbox id="no-avail-interps-message" collapsed="true" flex="1" align="center">
+                <description style="font-weight: bold;">
+                    &noGolangLocation.description;
+                </description>
+                <button label="&httpWwwGolangLangOrg.label;"
+                        class="button-link-a" style="cursor:pointer;"
+                        oncommand="getKoObject('browse').openUrlInDefaultBrowser('http://www.golang-lang.org/');"/>
+            </vbox>
+            <vbox id="invalid-version-message" collapsed="true" flex="1" align="center">
+                <description style="font-weight: bold;">
+                    &invalidGolangVersion.description;
+                </description>
+                <button label="&httpWwwGolangLangOrg.label;"
+                        class="button-link-a" style="cursor:pointer;"
+                        oncommand="getKoObject('browse').openUrlInDefaultBrowser('http://www.golang-lang.org/');"/>
+            </vbox>
+            <text value="&filePrefGolangUseThisProgram.label;" style="padding: 2px 6px 2px 6px"/>
+            <hbox align="center">
+                <menulist id="golangDefaultLocation"
+                    flex="1"
+                    pref="true"
+                    prefstring="golangDefaultLocation"
+                    oncommand="PrefGolang_checkVersion();">
+                    <menupopup id="avail-interp-list"/>
+                </menulist>
+                <button label="&browse.label;" oncommand="loadGolangExecutable();"/>
+            </hbox>
+            <separator />
+            <text value="&defaultGocodeLocation.label;" style="padding: 2px 6px 2px 6px"/>
+            <hbox align="center">
+                <menulist id="gocodeDefaultLocation"
+                    flex="1"
+                    pref="true"
+                    prefstring="gocodeDefaultLocation">
+                    <menupopup id="gocode-avail-interp-list"/>
+                </menulist>
+                <button label="&browse.label;" oncommand="loadGocodeExecutable();"/>
+            </hbox>
+            <separator />
+            <text value="&defaultGodefLocation.label;" style="padding: 2px 6px 2px 6px"/>
+            <hbox align="center">
+                <menulist id="godefDefaultLocation"
+                    flex="1"
+                    pref="true"
+                    prefstring="godefDefaultLocation">
+                    <menupopup id="godef-avail-interp-list"/>
+                </menulist>
+                <button label="&browse.label;" oncommand="loadGodefExecutable();"/>
+            </hbox>
+            <separator />
+            <vbox id="gopath-not-set" collapsed="true" flex="1" align="center">
+                <description style="font-weight: bold;">
+                    &gopathNotset.description;
+                </description>
+                <button label="&switchToEnvironmentTab.label;"
+                        class="button-link-a" style="cursor:pointer;"
+                        oncommand="switchToEnvironmentTab();"/>
+            </vbox>
+        </groupbox>
+
+    </vbox>
+
+</window>
+

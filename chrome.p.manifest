@@ -1,0 +1,10 @@
+# #if MODE == "dev"
+content golang content/
+locale golang en-US locale/en-US/
+# #else
+content golang jar:golang.jar!/content/
+locale golang en-US jar:golang.jar!/locale/en-US/
+# #endif
+overlay chrome://komodo/content/pref/pref.xul chrome://golang/content/pref/golang-pref-overlay.xul
+
+manifest components/component.manifest

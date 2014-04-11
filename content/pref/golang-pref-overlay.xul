@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE overlay SYSTEM "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
+  <!ENTITY % golangDTD SYSTEM "chrome://golang/locale/golang.dtd">
+  %golangDTD;
+]>
+
+<overlay id="golang_prefs_overlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <treechildren id="languagesChildren">
+    <treeitem container="false" id="golangItem" insertbefore="htmlItem">
+      <treerow>
+        <treecell class="treecell-indent"
+                  url="chrome://golang/content/pref/pref-golang.xul"
+                  label="&golang.label;"
+                  helptag="golang_configuration"/>
+      </treerow>
+    </treeitem>
+  </treechildren>
+</overlay>

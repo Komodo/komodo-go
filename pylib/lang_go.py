@@ -9,18 +9,15 @@ import logging
 import process
 import time
 import ciElementTree as ET
+import which
+
+import SilverCity
+from SilverCity.Lexer import Lexer
+from SilverCity import ScintillaConstants
 from codeintel2.accessor import AccessorCache
-from codeintel2.citadel import CitadelLangIntel
+from codeintel2.citadel import CitadelLangIntel, CitadelBuffer
 from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, CILEDriver, Definition
 from codeintel2.langintel import ParenStyleCalltipIntelMixin, ProgLangTriggerIntelMixin, PythonCITDLExtractorMixin
-from codeintel2.udl import UDLBuffer
-
-
-try:
-    from xpcom.server import UnwrapObject
-    _xpcom_ = True
-except ImportError:
-    _xpcom_ = False
 
 
 #---- globals
@@ -29,12 +26,37 @@ lang = "Go"
 log = logging.getLogger("codeintel.go")
 #log.setLevel(logging.DEBUG)
 
+try:
+    sys.path.append(os.path.dirname(__file__))
+    from langinfo_go import GoLangInfo
+except:
+    class GoLangInfo:
+        reserved_keywords = set([])
+        predeclared_identifiers = set([])
+        predeclared_functions = set([])
+        default_encoding = "utf-8"
+    import styles
+    if not styles.StateMap.has_key(lang):
+        map = styles.StateMap['C++'].copy()
+        styles.addSharedStyles(map)
+        styles.StateMap[lang] = map
+finally:
+    sys.path.pop()
+    
 
 #---- Lexer class
 
-from codeintel2.udl import UDLLexer
-class GoLexer(UDLLexer):
+class GoLexer(Lexer):
     lang = lang
+    def __init__(self):
+        self._properties = SilverCity.PropertySet()
+        self._lexer = SilverCity.find_lexer_module_by_id(ScintillaConstants.SCLEX_CPP)
+        self._keyword_lists = [
+            SilverCity.WordList(' '.join(sorted(GoLangInfo.reserved_keywords))),
+            SilverCity.WordList(' '.join(
+                            sorted(GoLangInfo.predeclared_identifiers.
+                                   union(GoLangInfo.predeclared_functions)))),
+        ]
 
 
 #---- LangIntel class
@@ -128,10 +150,6 @@ class GoLangIntel(CitadelLangIntel,
         return trg
 
     def async_eval_at_trg(self, buf, trg, ctlr):
-        if _xpcom_:
-            trg = UnwrapObject(trg)
-            ctlr = UnwrapObject(ctlr)
-
         # if a definition lookup, use godef
         if trg.type == "defn":
             return self.lookup_defn(buf, trg, ctlr)
@@ -140,17 +158,23 @@ class GoLangIntel(CitadelLangIntel,
         return self.invoke_gocode(buf, trg, ctlr)
 
     def lookup_defn(self, buf, trg, ctlr):
-        cmd = ['godef', '-i=true', '-t=true', '-f=%s' % buf.path, '-o=%s' % trg.pos]
+        env = buf.env
+        godef_path = self._get_gotool('godef', env)
+        # We can't store the path and watch prefs because this isn't a
+        # true xpcom object.
+        if godef_path is None:
+            godef_path = 'godef'
+        cmd = [godef_path, '-i=true', '-t=true', '-f=%s' % buf.path, '-o=%s' % trg.pos]
         log.debug("running [%s]", cmd)
         try:
-            p = process.ProcessOpen(cmd, env=buf.env.get_all_envvars())
+            p = process.ProcessOpen(cmd, env=env.get_all_envvars())
         except OSError, e:
             log.error("Error executing '%s': %s", cmd[0], e)
             return
 
         output, error = p.communicate(buf.accessor.text)
         if error:
-            log.debug("'gocode' stderr: [%s]", error)
+            log.debug("'godef' (%s) stderr: [%s]", godef_path, error)
             return
 
         lines = output.splitlines()
@@ -188,10 +212,16 @@ class GoLangIntel(CitadelLangIntel,
         if trg.type == "call-signature":
             pos = pos - 1
 
-        cmd = ['gocode', '-f=json', 'autocomplete', buf.path, '%s' % pos]
+        env = buf.env
+        gocode_path = self._get_gotool('gocode', buf.env)
+        # We can't store the path and watch prefs because this isn't a
+        # true xpcom object.
+        if gocode_path is None:
+            gocode_path = 'gocode'
+        cmd = [gocode_path, '-f=json', 'autocomplete', buf.path, '%s' % pos]
         log.debug("running [%s]", cmd)
         try:
-            p = process.ProcessOpen(cmd, env=buf.env.get_all_envvars())
+            p = process.ProcessOpen(cmd, env=env.get_all_envvars())
         except OSError, e:
             log.error("Error executing '%s': %s", cmd[0], e)
             return
@@ -223,10 +253,39 @@ class GoLangIntel(CitadelLangIntel,
             ctlr.set_cplns([(self.codeintel_type_from_completion_data(entry), entry['name']) for entry in completion_data])
             ctlr.done("success")
 
-
+    def _get_gotool(self, tool_name, env):
+        # First try the pref
+        # Then try which
+        # Then try the golang pref
+        # Finally try which golang
+        path = [d.strip()
+                for d in env.get_envvar("PATH", "").split(os.pathsep)
+                if d.strip()]
+        tool_path = env.get_pref(tool_name + "DefaultLocation", "")
+        if tool_path and os.path.exists(tool_path):
+            return tool_path
+        ext = sys.platform.startswith("win") and ".exe" or ""
+        golang_path = env.get_pref("golangDefaultLocation", "")
+        if golang_path:
+            tool_path = os.path.join(os.path.dirname(golang_dir), tool_name + ext)
+            if os.path.exists(tool_path):
+                return tool_path
+        try:
+            return which.which(tool_name, path=path)
+        except which.WhichError:
+            pass
+        try:
+            golang_path = which.which('golang', path=path)
+        except which.WhichError:
+            return None
+        tool_path = os.path.join(os.path.basename(golang_path, tool_name)) + ext
+        if os.path.exists(tool_path):
+            return tool_path
+        return None
+        
 #---- Buffer class
 
-class GoBuffer(UDLBuffer):
+class GoBuffer(CitadelBuffer):
     lang = lang
     cpln_fillup_chars = "~`!@#$%^&()-=+{}[]|\\;:'\",.<>?/ "
     cpln_stop_chars = "~`!@#$%^&*()-=+{}[]|\\;:'\",.<>?/ "
