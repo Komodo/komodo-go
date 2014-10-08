@@ -17,4 +17,4 @@ Import(
     'mozIdlIncludePath',
 );
 
-$cons->KoExt("koinstall");
+$cons->KoExt("koinstall -i golib");

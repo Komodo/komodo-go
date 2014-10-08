@@ -17,13 +17,17 @@ from Komodo 9.
   - Code Outline (for Code Browser and Sections List in IDE)
   - Jump to definition via [godef](http://godoc.org/code.google.com/p/rog-go/exp/cmd/godef)
 
+# Requirements
+
+- Install 'go' and 'gocode', ensure are on the PATH configured in your overall
+  or project-specific Komodo settings
+- For code completion and go to definition ensure 'gocode' and 'godef' are on
+  your paths as well. To install gocode and godef:
+  - $ go get github.com/nsf/gocode
+  - $ go get code.google.com/p/rog-go/exp/cmd/godef
+
 # Building
 
 - Find the 'koext' binary that is within your Komodo install (within sdk/bin).
-- Run 'koext build' from the repository root, it should produce an .xpi for you.
+- Run 'koext build -i golib' from the repository root, it should produce an .xpi for you.
 - Open this .xpi with Komodo to install it.
-- Ensure 'go' and 'gocode' are on the PATH configured in your overall or project-specific Komodo settings
-- For completion and go to definition ensure 'gocode' and 'godef' are on your paths as well.
-- To install gocode and godef:
-  - $ go get github.com/nsf/gocode
-  - $ go get code.google.com/p/rog-go/exp/cmd/godef
