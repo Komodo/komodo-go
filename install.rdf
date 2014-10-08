@@ -9,6 +9,7 @@
     <em:creator>Trent Mick</em:creator>
     <em:creator>Travis Cline</em:creator>
     <em:creator>Eric Promislow</em:creator>
+    <em:creator>Todd Whiteman</em:creator>
     <em:homepageURL>https://github.com/trentm/komodo-go</em:homepageURL>
     <em:type>2</em:type> <!-- type=extension --> 
 
@@ -16,14 +17,14 @@
       <Description>
         <em:id>{36E66FA0-F259-11D9-850E-000D935D3368}</em:id>
         <em:minVersion>5.0</em:minVersion>
-        <em:maxVersion>8.*</em:maxVersion>
+        <em:maxVersion>9.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <em:targetApplication> <!-- Komodo Edit -->
       <Description>
         <em:id>{b1042fb5-9e9c-11db-b107-000d935d3368}</em:id>
         <em:minVersion>5.0</em:minVersion>
-        <em:maxVersion>8.*</em:maxVersion>
+        <em:maxVersion>9.*</em:maxVersion>
       </Description>
     </em:targetApplication>
   </Description>
