@@ -1,0 +1,20 @@
+#!/usr/local/bin/perl
+
+# Build file used by Komodo.
+
+Import(
+    'cons',
+    'platform',
+    'productType',
+    'buildFlavour',
+    'sdkDir',
+    'idlExportDir',
+    'build',
+    'mozBin',
+    'unsiloedPythonExe',
+    'mozVersion',
+    'mozExtensionDir',
+    'mozIdlIncludePath',
+);
+
+$cons->KoExt("koinstall");
