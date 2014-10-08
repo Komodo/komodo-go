@@ -8,6 +8,15 @@ import json
 import logging
 import process
 import time
+
+try:
+    from zope.cachedescriptors.property import LazyClassAttribute
+except ImportError:
+    import warnings
+    warnings.warn("Unable to import zope.cachedescriptors.property")
+    # Fallback to regular properties.
+    LazyClassAttribute = property
+
 import ciElementTree as ET
 import which
 
@@ -16,8 +25,17 @@ from SilverCity.Lexer import Lexer
 from SilverCity import ScintillaConstants
 from codeintel2.accessor import AccessorCache
 from codeintel2.citadel import CitadelLangIntel, CitadelBuffer
-from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, CILEDriver, Definition
+from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, CILEDriver, Definition, CodeIntelError
 from codeintel2.langintel import ParenStyleCalltipIntelMixin, ProgLangTriggerIntelMixin, PythonCITDLExtractorMixin
+from codeintel2.udl import UDLBuffer
+from codeintel2.tree import tree_from_cix
+
+
+try:
+    from xpcom.server import UnwrapObject
+    _xpcom_ = True
+except ImportError:
+    _xpcom_ = False
 
 
 #---- globals
@@ -166,16 +184,12 @@ class GoLangIntel(CitadelLangIntel,
             godef_path = 'godef'
         cmd = [godef_path, '-i=true', '-t=true', '-f=%s' % buf.path, '-o=%s' % trg.pos]
         log.debug("running [%s]", cmd)
-        try:
-            p = process.ProcessOpen(cmd, env=env.get_all_envvars())
-        except OSError, e:
-            log.error("Error executing '%s': %s", cmd[0], e)
-            return
+        p = process.ProcessOpen(cmd, env=buf.env.get_all_envvars())
 
         output, error = p.communicate(buf.accessor.text)
         if error:
-            log.debug("'godef' (%s) stderr: [%s]", godef_path, error)
-            return
+            log.debug("'gocode' stderr: [%s]", error)
+            raise CodeIntelError(error)
 
         lines = output.splitlines()
         log.debug(output)
@@ -313,6 +327,37 @@ class GoBuffer(CitadelBuffer):
 
 class GoCILEDriver(CILEDriver):
     lang = lang
+    _gooutline_executable_and_error = None
+
+    @LazyClassAttribute
+    def golib_dir(self):
+        ext_path = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+        return os.path.join(ext_path, "golib")
+
+    def compile_gooutline(self, env=None):
+        if self._gooutline_executable_and_error is None:
+            self._gooutline_executable_and_error = (None, "Unknown Error")
+            outline_src = os.path.join(self.golib_dir, "outline.go")
+            # XXX - "go" should be an interpreter preference.
+            cmd = ["go", "build", outline_src]
+            cwd = self.golib_dir
+            try:
+                # Compile the executable.
+                p = process.ProcessOpen(cmd, cwd=cwd, env=env, stdin=None)
+                output, error = p.communicate()
+                if error:
+                    log.warn("'%s' stderr: [%s]", cmd, error)
+                outline_exe = outline_src.rstrip(".go")
+                if sys.platform.startswith("win"):
+                    outline_exe += ".exe"
+                # Remember the executable.
+                self._gooutline_executable_and_error = (outline_exe, None)
+            except Exception, ex:
+                error_message = "Unable to compile 'outline.go'" + str(ex)
+                self._gooutline_executable_and_error = (None, error_message)
+        if self._gooutline_executable_and_error[0]:
+            return self._gooutline_executable_and_error[0]
+        raise CodeIntelError(self._gooutline_executable_and_error[1])
 
     def scan_purelang(self, buf, mtime=None, lang="Go"):
         """Scan the given GoBuffer return an ElementTree (conforming
@@ -342,34 +387,27 @@ class GoCILEDriver(CILEDriver):
         else:
             path = buf.path
 
-        tree = ET.Element("codeintel", version="2.0",
-                          xmlns="urn:activestate:cix:2.0")
-        file = ET.SubElement(tree, "file", lang=lang, mtime=str(mtime))
-        blob = ET.SubElement(file, "scope", ilk="blob", lang=lang,
-                             name=os.path.basename(path))
+        env = buf.env.get_all_envvars()
+        try:
+            gooutline_exe_path = self.compile_gooutline(env)
+        except Exception, e:
+            log.error("Error compiling outline: %s", e)
+            raise
 
-        #TODO:
-        # - A 'package' -> 'blob'. Problem is a single go package can be from
-        #   multiple files... so really would want `lib.get_blobs(name)` instead
-        #   of `lib.get_blob(name)` in the codeintel API. How does Ruby deal with
-        #   this? Perl?
-        # - How do the multi-platform stdlib syscall_linux.go et al fit together?
+        cmd = [gooutline_exe_path, buf.path]
+        log.debug("running [%s]", cmd)
+        try:
+            p = process.ProcessOpen(cmd, env=env)
+        except OSError, e:
+            log.error("Error executing '%s': %s", cmd, e)
+            return
 
-        # Dev Note:
-        # This is where you process the Go content and add CIX elements
-        # to 'blob' as per the CIX schema (cix-2.0.rng). Use the
-        # "buf.accessor" API (see class Accessor in codeintel2.accessor) to
-        # analyze. For example:
-        # - A token stream of the content is available via:
-        #       buf.accessor.gen_tokens()
-        #   Use the "codeintel html -b <example-Go-file>" command as
-        #   a debugging tool.
-        # - "buf.accessor.text" is the whole content of the file. If you have
-        #   a separate tokenizer/scanner tool for Go content, you may
-        #   want to use it.
+        output, error = p.communicate()
+        if error:
+            log.warn("'%s' stderr: [%s]", cmd[0], error)
 
-        return tree
-
+        xml = '<codeintel version="2.0">\n' + output + '</codeintel>'
+        return tree_from_cix(xml)
 
 
 #---- registration
