@@ -25,10 +25,15 @@ from SilverCity.Lexer import Lexer
 from SilverCity import ScintillaConstants
 from codeintel2.accessor import AccessorCache
 from codeintel2.citadel import CitadelLangIntel, CitadelBuffer
-from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, CILEDriver, Definition, CodeIntelError
+from codeintel2.common import Trigger, TRG_FORM_CALLTIP, TRG_FORM_CPLN, TRG_FORM_DEFN, CILEDriver, Definition, CodeIntelError
 from codeintel2.langintel import ParenStyleCalltipIntelMixin, ProgLangTriggerIntelMixin, PythonCITDLExtractorMixin
 from codeintel2.udl import UDLBuffer
 from codeintel2.tree import tree_from_cix
+from SilverCity.ScintillaConstants import (
+    SCE_C_COMMENT, SCE_C_COMMENTDOC, SCE_C_COMMENTDOCKEYWORD,
+    SCE_C_COMMENTDOCKEYWORDERROR, SCE_C_COMMENTLINE,
+    SCE_C_COMMENTLINEDOC, SCE_C_DEFAULT, SCE_C_IDENTIFIER, SCE_C_NUMBER,
+    SCE_C_OPERATOR, SCE_C_STRING, SCE_C_CHARACTER, SCE_C_STRINGEOL, SCE_C_WORD)
 
 
 try:
@@ -87,7 +92,7 @@ class GoLangIntel(CitadelLangIntel,
     lang = lang
     citdl_from_literal_type = {"string": "string"}
     calltip_trg_chars = tuple('(')
-    trg_chars = tuple(" (.")
+    trg_chars = tuple(' (."')
     
     completion_name_mapping = {
         'var': 'variable',
@@ -108,12 +113,63 @@ class GoLangIntel(CitadelLangIntel,
             completion_type = '%variable'
         return completion_type
 
+    def trg_from_pos(self, buf, pos, implicit=True,
+                     lang=None):
+        log.debug("trg_from_pos(pos=%r)", pos)
+        if pos < 2:
+            return None
+        accessor = buf.accessor
+        last_pos = pos - 1
+        last_char = accessor.char_at_pos(last_pos)
+
+        if last_char == '.': # must be "complete-object-members" or None
+            log.debug("  triggered 'complete-object-members'")
+            return Trigger(self.lang, TRG_FORM_CPLN,
+                           "object-members", pos, implicit)
+        elif last_char == '(':
+            log.debug("  triggered 'calltip-call-signature'")
+            return Trigger(self.lang, TRG_FORM_CALLTIP, "call-signature", pos, implicit)
+        elif last_char in '\'"`' or last_char == "@":
+            # Check if it's an import
+            log.debug("  checking for import statement")
+            ac = AccessorCache(accessor, pos, fetchsize=100)
+            prev_style = accessor.style_at_pos(last_pos-1)
+            if prev_style == SCE_C_STRING:
+                # It's the end of a string then, not what we are looking for.
+                return False
+
+            # Bug in Komodo 8 - peek at the previous style to ensure the cache
+            # is primed. No needed in Komodo 9 onwards.
+            p, ch, style = ac.peekPrevPosCharStyle()
+            log.debug("  p1 %r, ch %r, style %r", p, ch, style)
+
+            loops_left = 100
+            while loops_left:
+                loops_left -= 1
+                p, ch, style = ac.getPrecedingPosCharStyle(style)
+                log.debug("  p %r, ch %r, style %r", p, ch, style)
+                if p is None:
+                    break
+                if style == SCE_C_WORD:
+                    p, text = ac.getTextBackWithStyle(style)
+                    log.debug("    p %r, text %r", p, text)
+                    if text == "import":
+                        log.debug("  triggered 'complete-imports'")
+                        return Trigger(self.lang, TRG_FORM_CPLN, "imports", pos, implicit)
+                    break
+                elif style not in (SCE_C_DEFAULT, SCE_C_OPERATOR, SCE_C_STRING,
+                                   SCE_C_COMMENT, SCE_C_COMMENTDOC, SCE_C_COMMENTLINE):
+                    break
+
+        log.debug("  triggered 'complete-any'")
+        return Trigger(self.lang, TRG_FORM_CPLN, "any", pos, implicit)
+
     def preceding_trg_from_pos(self, buf, pos, curr_pos, preceding_trg_terminators=None, DEBUG=False):
         #DEBUG = True
         if DEBUG:
-            print "pos: %d" % (pos, )
-            print "ch: %r" % (buf.accessor.char_at_pos(pos), )
-            print "curr_pos: %d" % (curr_pos, )
+            log.debug("pos: %d", pos)
+            log.debug("ch: %r", buf.accessor.char_at_pos(pos))
+            log.debug("curr_pos: %d", curr_pos)
 
         if pos != curr_pos and self._last_trg_type == "names":
             # The last trigger type was a 3-char trigger "names", we must try
@@ -137,7 +193,7 @@ class GoLangIntel(CitadelLangIntel,
             style = accessor.style_at_pos(pos)
             if DEBUG:
                 style_names = buf.style_names_from_style_num(style)
-                print "  style: %s (%s)" % (style, ", ".join(style_names))
+                log.debug("  style: %s (%s)", style, ", ".join(style_names))
             if style in (1,2):
                 ac = AccessorCache(accessor, pos)
                 prev_pos, prev_ch, prev_style = ac.getPrecedingPosCharStyle(style)
@@ -147,9 +203,9 @@ class GoLangIntel(CitadelLangIntel,
 
 
         if DEBUG:
-            print "trg: %r" % (trg, )
-            print "names_trigger: %r" % (names_trigger, )
-            print "last_trg_type: %r" % (self._last_trg_type, )
+            log.debug("trg: %r", trg)
+            log.debug("names_trigger: %r", names_trigger)
+            log.debug("last_trg_type: %r", self._last_trg_type)
 
         if names_trigger:
             if not trg:
@@ -169,9 +225,11 @@ class GoLangIntel(CitadelLangIntel,
 
     def async_eval_at_trg(self, buf, trg, ctlr):
         # if a definition lookup, use godef
-        if trg.type == "defn":
+        log.debug('async_eval_at_trg:: %r' % (trg, ))
+        if trg.form == TRG_FORM_DEFN:
             return self.lookup_defn(buf, trg, ctlr)
-
+        elif trg.name == "go-complete-imports":
+            return self.available_imports(buf, trg, ctlr)
         # otherwise use gocode
         return self.invoke_gocode(buf, trg, ctlr)
 
@@ -219,6 +277,38 @@ class GoLangIntel(CitadelLangIntel,
         log.debug(d)
         ctlr.start(buf, trg)
         ctlr.set_defns([d])
+        ctlr.done("success")
+
+    _packages_from_exe = {}
+
+    def available_imports(self, buf, trg, ctlr):
+        env = buf.env
+        go_exe = self.get_go_exe(env)
+        if not go_exe:
+            raise CodeIntelError("Unable to locate go executable")
+
+        if go_exe not in self._packages_from_exe:
+            cmd = [go_exe, 'list', 'std']
+            cwd = None
+            if buf.path != "<Unsaved>":
+                cwd = os.path.dirname(buf.path)
+            env_vars = env.get_all_envvars()
+            log.debug("running cmd %r", cmd)
+            try:
+                p = process.ProcessOpen(cmd, cwd=cwd, env=env_vars)
+            except OSError, e:
+                raise CodeIntelError("Error executing '%s': %s" % (cmd, e))
+            output, error = p.communicate()
+            if error:
+                log.warn("cmd %r error [%s]", cmd, error)
+                raise CodeIntelError(error)
+            package_names = [x.strip() for x in output.splitlines() if x]
+            log.debug("retrieved %d package names", len(package_names))
+            self._packages_from_exe[go_exe] = package_names
+
+        stdlib_imports = self._packages_from_exe.get(go_exe, [])
+        ctlr.start(buf, trg)
+        ctlr.set_cplns([("import", name) for name in stdlib_imports])
         ctlr.done("success")
 
     def invoke_gocode(self, buf, trg, ctlr):
@@ -274,61 +364,50 @@ class GoLangIntel(CitadelLangIntel,
             ctlr.set_cplns([(self.codeintel_type_from_completion_data(entry), entry['name']) for entry in completion_data])
             ctlr.done("success")
 
-    def _get_gotool(self, tool_name, env):
-        # First try the pref
-        # Then try which
-        # Then try the golang pref
-        # Finally try which golang
+    def get_go_exe(self, env):
+        golang_path = env.get_pref("golangDefaultLocation", "")
+        if golang_path:
+            return golang_path
         path = [d.strip()
                 for d in env.get_envvar("PATH", "").split(os.pathsep)
                 if d.strip()]
+        try:
+            return which.which('go', path=path)
+        except which.WhichError:
+            return None
+
+    def _get_gotool(self, tool_name, env):
+        # First try the pref
+        # Then try which
+        # Finally try relative to the golang executable
         tool_path = env.get_pref(tool_name + "DefaultLocation", "")
         if tool_path and os.path.exists(tool_path):
             return tool_path
-        ext = sys.platform.startswith("win") and ".exe" or ""
-        golang_path = env.get_pref("golangDefaultLocation", "")
-        if golang_path:
-            tool_path = os.path.join(os.path.dirname(golang_dir), tool_name + ext)
-            if os.path.exists(tool_path):
-                return tool_path
+        path = [d.strip()
+                for d in env.get_envvar("PATH", "").split(os.pathsep)
+                if d.strip()]
         try:
             return which.which(tool_name, path=path)
         except which.WhichError:
             pass
-        try:
-            golang_path = which.which('golang', path=path)
-        except which.WhichError:
-            return None
-        tool_path = os.path.join(os.path.basename(golang_path, tool_name)) + ext
-        if os.path.exists(tool_path):
-            return tool_path
+        go_exe = self.get_go_exe(env)
+        if go_exe:
+            ext = sys.platform.startswith("win") and ".exe" or ""
+            tool_path = os.path.join(os.path.dirname(go_exe), tool_name + ext)
+            if os.path.exists(tool_path):
+                return tool_path
         return None
         
 #---- Buffer class
 
 class GoBuffer(CitadelBuffer):
     lang = lang
-    cpln_fillup_chars = "~`!@#$%^&()-=+{}[]|\\;:'\",.<>?/ "
-    cpln_stop_chars = "~`!@#$%^&*()-=+{}[]|\\;:'\",.<>?/ "
-    
+    # '/' removed as import packages use that
+    cpln_fillup_chars = "~`!@#$%^&()-=+{}[]|\\;:'\",.<>? "
+    cpln_stop_chars = "~`!@#$%^&*()-=+{}[]|\\;:'\",.<>? "
     ssl_lang = lang
-
-    def trg_from_pos(self, pos, implicit=True):
-        #print "XXX trg_from_pos(pos=%r)" % pos
-
-        if pos < 2:
-            return None
-        accessor = self.accessor
-        last_pos = pos - 1
-        last_char = accessor.char_at_pos(last_pos)
-
-        if last_char == '.': # must be "complete-object-members" or None
-            return Trigger(self.lang, TRG_FORM_CPLN,
-                           "object-members", pos, implicit)
-        elif last_char == '(':
-            return Trigger(self.lang, TRG_FORM_CALLTIP, "call-signature", pos, implicit)
-
-        return Trigger(self.lang, TRG_FORM_CPLN, "any", pos, implicit)
+    # The ScintillaConstants all start with this prefix:
+    sce_prefixes = ["SCE_C_"]
 
 #---- CILE Driver class
 
@@ -341,13 +420,17 @@ class GoCILEDriver(CILEDriver):
         ext_path = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
         return os.path.join(ext_path, "golib")
 
-    def compile_gooutline(self, env=None):
+    def compile_gooutline(self, buf):
         if self._gooutline_executable_and_error is None:
             self._gooutline_executable_and_error = (None, "Unknown Error")
             outline_src = os.path.join(self.golib_dir, "outline.go")
             # XXX - "go" should be an interpreter preference.
-            cmd = ["go", "build", outline_src]
+            go_exe = buf.langintel.get_go_exe(buf.env)
+            if not go_exe:
+                raise CodeIntelError("Unable to locate go executable")
+            cmd = [go_exe, "build", outline_src]
             cwd = self.golib_dir
+            env = buf.env.get_all_envvars()
             try:
                 # Compile the executable.
                 p = process.ProcessOpen(cmd, cwd=cwd, env=env, stdin=None)
@@ -394,14 +477,14 @@ class GoCILEDriver(CILEDriver):
         else:
             path = buf.path
 
-        env = buf.env.get_all_envvars()
         try:
-            gooutline_exe_path = self.compile_gooutline(env)
+            gooutline_exe_path = self.compile_gooutline(buf)
         except Exception, e:
             log.error("Error compiling outline: %s", e)
             raise
 
         cmd = [gooutline_exe_path, buf.path]
+        env = buf.env.get_all_envvars()
         log.debug("running [%s]", cmd)
         try:
             p = process.ProcessOpen(cmd, env=env)
