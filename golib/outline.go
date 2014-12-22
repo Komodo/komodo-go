@@ -7,54 +7,54 @@
 package main
 
 import (
-	"os"
+	"encoding/xml"
 	"fmt"
-	"time"
-	"reflect"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"encoding/xml"
+	"os"
 	"path/filepath"
+	"reflect"
+	"time"
 )
 
 type Node interface {
 }
 
 type Import struct {
-	XMLName   xml.Name `xml:"import"`
-	Module    string   `xml:"module,attr"`
-	Name  	  string   `xml:"name,attr,omitempty"`
-	Line      int      `xml:"line,attr,omitempty"`
-	LineEnd   int      `xml:"lineend,attr,omitempty"`
+	XMLName xml.Name `xml:"import"`
+	Module  string   `xml:"module,attr"`
+	Name    string   `xml:"name,attr,omitempty"`
+	Line    int      `xml:"line,attr,omitempty"`
+	LineEnd int      `xml:"lineend,attr,omitempty"`
 }
 
 type Variable struct {
-	XMLName   xml.Name `xml:"variable"`
-	Name  	  string   `xml:"name,attr"`
-	Citdl     string   `xml:"citdl,attr"`
-	Line      int      `xml:"line,attr,omitempty"`
-	LineEnd   int      `xml:"lineend,attr,omitempty"`
+	XMLName xml.Name `xml:"variable"`
+	Name    string   `xml:"name,attr"`
+	Citdl   string   `xml:"citdl,attr"`
+	Line    int      `xml:"line,attr,omitempty"`
+	LineEnd int      `xml:"lineend,attr,omitempty"`
 }
 
 type Scope struct {
 	XMLName   xml.Name `xml:"scope"`
 	Classrefs string   `xml:"classrefs,attr,omitempty"`
-	Ilk  	  string   `xml:"ilk,attr"`
-	Name  	  string   `xml:"name,attr"`
-	Lang  	  string   `xml:"lang,attr,omitempty"`
+	Ilk       string   `xml:"ilk,attr"`
+	Name      string   `xml:"name,attr"`
+	Lang      string   `xml:"lang,attr,omitempty"`
 	Signature string   `xml:"signature,attr,omitempty"`
 	Line      int      `xml:"line,attr,omitempty"`
 	LineEnd   int      `xml:"lineend,attr,omitempty"`
-	Nodes      []Node
+	Nodes     []Node
 }
 
 type File struct {
-	XMLName    xml.Name `xml:"file"`
-	Lang  	   string   `xml:"lang,attr"`
-	Path  	   string   `xml:"path,attr"`
-	Mtime  	   int64    `xml:"mtime,attr"`
-	FileScope *Scope
+	XMLName      xml.Name `xml:"file"`
+	Lang         string   `xml:"lang,attr"`
+	Path         string   `xml:"path,attr"`
+	Mtime        int64    `xml:"mtime,attr"`
+	FileScope    *Scope
 	currentClass *Scope
 }
 
@@ -104,7 +104,7 @@ func outlineHandler(path string) File {
 		case *ast.StructType:
 			scope := outline.currentClass
 			for _, field := range x.Fields.List {
-				if (field.Names != nil) {
+				if field.Names != nil {
 					line := fileset.Position(field.Pos()).Line
 					name := string(field.Names[0].Name)
 					citdl := typeStr(field.Type)
@@ -132,20 +132,20 @@ func outlineHandler(path string) File {
 						if ok {
 							line := fileset.Position(spec.Pos()).Line
 							name := ""
-							if (importSpec.Name != nil) {
+							if importSpec.Name != nil {
 								name = importSpec.Name.Name
 							}
-							path := importSpec.Path.Value[1:len(importSpec.Path.Value)-1]
+							path := importSpec.Path.Value[1 : len(importSpec.Path.Value)-1]
 							filescope.Nodes = append(filescope.Nodes, Import{Line: line, Name: name, Module: path})
 						}
 					}
 				}
+			}
 			//} else if x.Tok == token.CONST {
 			//	line := strconv.FormatInt(int64(fileset.Position(x.Pos()).Line), 10)
 			//	label := "CONST"
-				//filescope.Nodes = append(filescope.Nodes, Variable{Line: line, Citdl: citdl})
-				//filescope.Nodes = append(filescope.Nodes, Entry{Line: line, Label: label})
-			}
+			//	filescope.Nodes = append(filescope.Nodes, Variable{Line: line, Citdl: citdl})
+			//	filescope.Nodes = append(filescope.Nodes, Entry{Line: line, Label: label})
 		}
 		return true
 	})
