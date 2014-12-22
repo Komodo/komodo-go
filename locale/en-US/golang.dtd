@@ -8,7 +8,6 @@
 <!ENTITY httpWwwGolangLangOrg.label "http://golang.org/doc/install">
 <!ENTITY invalidGolangVersion.description "Please install version 1.0 of Go (or more recent) to get syntax-checking">
 <!ENTITY filePrefGolangUseThisProgram.label "Use this Go tool">
-<!ENTITY defaultGolangLocation "Default Go Tool">
 
 <!ENTITY gopathNotset.description "The GOPATH environment variable needs to be set. Neither gocode nor godef work when it's unset.">
 <!ENTITY switchToEnvironmentTab.label "Environment Prefs...">
