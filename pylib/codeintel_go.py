@@ -421,13 +421,12 @@ class GoCILEDriver(CILEDriver):
         return os.path.join(ext_path, "golib")
 
     def compile_gooutline(self, buf):
-        if self._gooutline_executable_and_error is None:
-            self._gooutline_executable_and_error = (None, "Unknown Error")
+        go_exe = buf.langintel.get_go_exe(buf.env)
+        if not go_exe:
+            raise CodeIntelError("Unable to locate go executable")
+        if self._gooutline_executable_and_error is None or go_exe != self._gooutline_executable_and_error[0]:
+            self._gooutline_executable_and_error = (go_exe, None, "Unknown Error")
             outline_src = os.path.join(self.golib_dir, "outline.go")
-            # XXX - "go" should be an interpreter preference.
-            go_exe = buf.langintel.get_go_exe(buf.env)
-            if not go_exe:
-                raise CodeIntelError("Unable to locate go executable")
             cmd = [go_exe, "build", outline_src]
             cwd = self.golib_dir
             env = buf.env.get_all_envvars()
@@ -441,13 +440,13 @@ class GoCILEDriver(CILEDriver):
                 if sys.platform.startswith("win"):
                     outline_exe += ".exe"
                 # Remember the executable.
-                self._gooutline_executable_and_error = (outline_exe, None)
+                self._gooutline_executable_and_error = (go_exe, outline_exe, None)
             except Exception, ex:
                 error_message = "Unable to compile 'outline.go'" + str(ex)
-                self._gooutline_executable_and_error = (None, error_message)
-        if self._gooutline_executable_and_error[0]:
-            return self._gooutline_executable_and_error[0]
-        raise CodeIntelError(self._gooutline_executable_and_error[1])
+                self._gooutline_executable_and_error = (go_exe, None, error_message)
+        if self._gooutline_executable_and_error[1]:
+            return self._gooutline_executable_and_error[1]
+        raise CodeIntelError(self._gooutline_executable_and_error[2])
 
     def scan_purelang(self, buf, mtime=None, lang="Go"):
         """Scan the given GoBuffer return an ElementTree (conforming
