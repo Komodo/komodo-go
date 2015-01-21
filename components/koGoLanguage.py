@@ -93,15 +93,25 @@ on these two lines */
             globalPrefs.setStringPref("Go/newEncoding", "utf-8")
             globalPrefs.setLongPref("Go/indentWidth", 8)
             globalPrefs.setBooleanPref("Go/useTabs", True)
-            #TODO: Add formatter prefs along the lines of:
-            # <!-- Go formatter -->
-            # <preference-set >
-            # <string id="formatter_name">generic</string>
-            # <string id="lang">Go</string>
-            # <string id="name">Go Reformatter</string>
-            # <string id="uuid">{286d5b45-a54e-4317-b3c8-da4dc35673a4}</string>
-            # </preference-set>
 
+        # Add the go formatter.
+        if not globalPrefs.getBoolean("haveInstalledGoFormatter", False):
+            formatters = globalPrefs.getPref("configuredFormatters")
+            go_formatter_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
+            uuid = "{cf500001-ec59-4047-86e7-369d257f4b80}"
+            go_formatter_prefset.id = uuid
+            go_formatter_prefset.setStringPref("lang", "Go")
+            go_formatter_prefset.setStringPref("name", "GoFmt")
+            go_formatter_prefset.setStringPref("uuid", uuid)
+            go_formatter_prefset.setStringPref("formatter_name", "generic")
+            args_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
+            args_prefset.id = "genericFormatterPrefs"
+            args_prefset.setStringPref("executable", "%(go)")
+            args_prefset.setStringPref("arguments", "fmt")
+            go_formatter_prefset.setPref("genericFormatterPrefs", args_prefset)
+            formatters.appendString(uuid)
+            globalPrefs.setPref(uuid, go_formatter_prefset)
+            globalPrefs.setBoolean("haveInstalledGoFormatter", True)
 
     def getLanguageService(self, iid):
         return KoLanguageBase.getLanguageService(self, iid)
