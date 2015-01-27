@@ -31,6 +31,8 @@ class koGoLanguage(KoLanguageBase, KoLanguageBaseDedentMixin):
                        % (name)
     _reg_clsid_ = "{2d6ed8b6-f079-441a-8b5a-10ef781cb989}"
     _reg_categories_ = [("komodo-language", name)]
+    _com_interfaces_ = KoLanguageBase._com_interfaces_ + \
+                       [components.interfaces.koIInterpolationCallback]
 
     modeNames = ['go']
     primary = 1
@@ -112,6 +114,22 @@ on these two lines */
             formatters.appendString(uuid)
             globalPrefs.setPref(uuid, go_formatter_prefset)
             globalPrefs.setBoolean("haveInstalledGoFormatter", True)
+
+        # Add extensible items.
+        interpolateSvc = components.classes["@activestate.com/koInterpolationService;1"].\
+                            getService(components.interfaces.koIInterpolationService)
+        try:
+            interpolateSvc.addCode('go', self)
+        except Exception:
+            log.warn("Unable to add 'go' interpolation shortcut")
+
+    def interpolationCallback(self, code, fileName, lineNum, word, selection,
+                              projectFile, prefs):
+        if code == 'go':
+            golangInfoEx = components.classes["@activestate.com/koAppInfoEx?app=Go;1"].\
+                        getService(components.interfaces.koIAppInfoEx)
+            return golangInfoEx.executablePath
+        raise RuntimeError("Unexpected go code %r" % (code, ))
 
     def getLanguageService(self, iid):
         return KoLanguageBase.getLanguageService(self, iid)
