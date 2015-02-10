@@ -115,13 +115,14 @@ on these two lines */
             globalPrefs.setPref(uuid, go_formatter_prefset)
             globalPrefs.setBoolean("haveInstalledGoFormatter", True)
 
-        # Add extensible items.
-        interpolateSvc = components.classes["@activestate.com/koInterpolationService;1"].\
-                            getService(components.interfaces.koIInterpolationService)
-        try:
-            interpolateSvc.addCode('go', self)
-        except Exception:
-            log.warn("Unable to add 'go' interpolation shortcut")
+        # Add extensible items (available in komodo 9 and higher).
+        if koIInterpolationService in components.interfaces:
+            interpolateSvc = components.classes["@activestate.com/koInterpolationService;1"].\
+                                getService(components.interfaces.koIInterpolationService)
+            try:
+                interpolateSvc.addCode('go', self)
+            except Exception:
+                log.warn("Unable to add 'go' interpolation shortcut")
 
     def interpolationCallback(self, code, fileName, lineNum, word, selection,
                               projectFile, prefs):
