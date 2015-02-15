@@ -59,7 +59,8 @@
                 <menulist id="golangDefaultLocation"
                     flex="1"
                     pref="true"
-                    prefstring="golangDefaultLocation"
+                    preftype="string"
+                    prefdefault=""
                     oncommand="PrefGolang_checkVersion();">
                     <menupopup id="avail-interp-list"/>
                 </menulist>
@@ -71,7 +72,8 @@
                 <menulist id="gocodeDefaultLocation"
                     flex="1"
                     pref="true"
-                    prefstring="gocodeDefaultLocation">
+                    preftype="string"
+                    prefdefault="">
                     <menupopup id="gocode-avail-interp-list"/>
                 </menulist>
                 <button label="&browse.label;" oncommand="loadGocodeExecutable();"/>
@@ -82,7 +84,8 @@
                 <menulist id="godefDefaultLocation"
                     flex="1"
                     pref="true"
-                    prefstring="godefDefaultLocation">
+                    preftype="string"
+                    prefdefault="">
                     <menupopup id="godef-avail-interp-list"/>
                 </menulist>
                 <button label="&browse.label;" oncommand="loadGodefExecutable();"/>
