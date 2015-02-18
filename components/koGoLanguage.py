@@ -116,7 +116,7 @@ on these two lines */
             globalPrefs.setBoolean("haveInstalledGoFormatter", True)
 
         # Add extensible items (available in komodo 9 and higher).
-        if koIInterpolationService in components.interfaces:
+        if 'koIInterpolationService' in components.interfaces:
             interpolateSvc = components.classes["@activestate.com/koInterpolationService;1"].\
                                 getService(components.interfaces.koIInterpolationService)
             try:
