@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <!DOCTYPE window SYSTEM "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
+  <!ENTITY % golangDTD SYSTEM "chrome://golang/locale/golang.dtd">
+  %golangDTD;
   <!ENTITY % prefDTD SYSTEM "chrome://komodo/locale/pref/pref.dtd">
   %prefDTD;
   <!ENTITY % prefDTD.INTERNAL SYSTEM "chrome://komodo/locale/pref-internal.dtd">
   %prefDTD.INTERNAL;
-  <!ENTITY % golangDTD SYSTEM "chrome://golang/locale/golang.dtd">
-  %golangDTD;
 ]>
 
 <!-- Copyright (c) 2000-2006 ActiveState Software Inc.

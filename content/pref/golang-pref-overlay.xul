@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 
 <!DOCTYPE overlay SYSTEM "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" [
-  <!ENTITY % golangDTD SYSTEM "chrome://golang/locale/golang.dtd">
-  %golangDTD;
+  <!ENTITY % golangPrefDTD SYSTEM "chrome://golang/locale/golang.dtd">
+  %golangPrefDTD;
 ]>
 
 <overlay id="golang_prefs_overlay"
