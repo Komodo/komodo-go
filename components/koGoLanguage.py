@@ -31,8 +31,14 @@ class koGoLanguage(KoLanguageBase, KoLanguageBaseDedentMixin):
                        % (name)
     _reg_clsid_ = "{2d6ed8b6-f079-441a-8b5a-10ef781cb989}"
     _reg_categories_ = [("komodo-language", name)]
-    _com_interfaces_ = KoLanguageBase._com_interfaces_ + \
-                       [components.interfaces.koIInterpolationCallback]
+    # Copy the base interfaces.
+    _com_interfaces_ = KoLanguageBase._com_interfaces_[:]
+    # Add koIInterpolationCallback - but it's only available in version 9 and
+    # above - so catch the exception for earlier versions.
+    try:
+        _com_interfaces_.append(components.interfaces.koIInterpolationCallback)
+    except:
+        log.warn("koIInterpolationCallback does not exist")
 
     modeNames = ['go']
     primary = 1
@@ -98,21 +104,22 @@ on these two lines */
 
         # Add the go formatter.
         if not globalPrefs.getBoolean("haveInstalledGoFormatter", False):
-            formatters = globalPrefs.getPref("configuredFormatters")
-            go_formatter_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
-            uuid = "{cf500001-ec59-4047-86e7-369d257f4b80}"
-            go_formatter_prefset.id = uuid
-            go_formatter_prefset.setStringPref("lang", "Go")
-            go_formatter_prefset.setStringPref("name", "GoFmt")
-            go_formatter_prefset.setStringPref("uuid", uuid)
-            go_formatter_prefset.setStringPref("formatter_name", "generic")
-            args_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
-            args_prefset.id = "genericFormatterPrefs"
-            args_prefset.setStringPref("executable", "%(go)")
-            args_prefset.setStringPref("arguments", "fmt")
-            go_formatter_prefset.setPref("genericFormatterPrefs", args_prefset)
-            formatters.appendString(uuid)
-            globalPrefs.setPref(uuid, go_formatter_prefset)
+            if globalPrefs.hasPref("configuredFormatters"):
+                formatters = globalPrefs.getPref("configuredFormatters")
+                go_formatter_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
+                uuid = "{cf500001-ec59-4047-86e7-369d257f4b80}"
+                go_formatter_prefset.id = uuid
+                go_formatter_prefset.setStringPref("lang", "Go")
+                go_formatter_prefset.setStringPref("name", "GoFmt")
+                go_formatter_prefset.setStringPref("uuid", uuid)
+                go_formatter_prefset.setStringPref("formatter_name", "generic")
+                args_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
+                args_prefset.id = "genericFormatterPrefs"
+                args_prefset.setStringPref("executable", "%(go)")
+                args_prefset.setStringPref("arguments", "fmt")
+                go_formatter_prefset.setPref("genericFormatterPrefs", args_prefset)
+                formatters.appendString(uuid)
+                globalPrefs.setPref(uuid, go_formatter_prefset)
             globalPrefs.setBoolean("haveInstalledGoFormatter", True)
 
         # Add extensible items (available in komodo 9 and higher).
@@ -251,4 +258,8 @@ class KoGolangLinter(object):
                                        columnEnd=columnEnd)
                 results.addResult(result)
         return results
-        
+
+# Komodo 8 and earlier registration call:
+def registerLanguage(registry):
+    log.debug("Registering language Go")
+    registry.registerLanguage(koGoLanguage())
