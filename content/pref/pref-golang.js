@@ -2,7 +2,6 @@
    See the file LICENSE.txt for licensing information. */
 
 //---- globals
-var prefExecutable = null;
 var appInfoEx = {golang:null, gocode:null, godef:null};
 var programmingLanguage = "Go";
 var _bundle = Components.classes["@mozilla.org/intl/stringbundle;1"]
@@ -23,6 +22,7 @@ function OnPreferencePageOK(prefset)
 function PrefGolang_PopulateGolangInterps()
 {
     var availInterpList = document.getElementById("golangDefaultLocation");
+    var prefExecutable = parent.hPrefWindow.prefset.getString('golangDefaultLocation', '')
 
     // remove any existing items and add a "finding..." one
     availInterpList.removeAllItems();
@@ -36,11 +36,12 @@ function PrefGolang_PopulateGolangInterps()
 
     var found = false;
     // populate the tree listing them
-    if (availInterps.length == 0) {
+    if (availInterps.length == 0 && !prefExecutable) {
         // tell the user no interpreter was found and direct them to
         // ActiveState to get one
         document.getElementById("no-avail-interps-message").removeAttribute("collapsed");
     } else {
+        document.getElementById("no-avail-interps-message").setAttribute("collapsed", "true");
         for (var i = 0; i < availInterps.length; i++) {
             availInterpList.appendItem(availInterps[i],availInterps[i]);
             if (availInterps[i] == prefExecutable) {
@@ -49,15 +50,14 @@ function PrefGolang_PopulateGolangInterps()
             }
         }
     }
-    if (!found && prefExecutable) {
-        availInterpList.appendItem(prefExecutable,prefExecutable);
-        appInfoEx.golang.executablePath = prefExecutable;
-        if (availInterpList.selectedIndex == -1
-            && availInterpList.itemCount >= 1) {
+    if (!found) {
+        if (prefExecutable) {
+            availInterpList.appendItem(prefExecutable,prefExecutable);
+            availInterpList.selectedIndex = availInterpList.childNodes.length - 1;
+        } else {
             availInterpList.selectedIndex = 0;
         }
     }
-    document.getElementById("no-avail-interps-message").setAttribute("collapsed", "true");
 }
 
 function PrefGolang_PopulateGotoolInterps(name)
@@ -66,14 +66,11 @@ function PrefGolang_PopulateGotoolInterps(name)
     var prefExecutable = parent.hPrefWindow.prefset.getString(prefName, '');
     var availInterpList = document.getElementById(prefName);
     
-    // remove any existing items and add a "finding..." one
     availInterpList.removeAllItems();
-    availInterpList.appendItem(_bundle.formatStringFromName("findingInterpreters.label", [programmingLanguage], 1));
+    availInterpList.appendItem(_bundle.GetStringFromName("findOnPath.label"),'');
 
     // get a list of installed gocode/godef interpreters
     var availInterps = appInfoEx[name].FindExecutables({});
-    availInterpList.removeAllItems();
-    availInterpList.appendItem(_bundle.GetStringFromName("findOnPath.label"),'');
     var found = false;
     // populate the tree listing them
     for (var i = 0; i < availInterps.length; i++) {
@@ -83,11 +80,12 @@ function PrefGolang_PopulateGotoolInterps(name)
             availInterpList.selectedIndex = i + 1;
         }
     }
-    if (!found && prefExecutable) {
-        availInterpList.appendItem(prefExecutable,prefExecutable);
-        appInfoEx[name].executablePath = prefExecutable;
-        if (availInterpList.selectedIndex == -1
-            && availInterpList.itemCount >= 1) {
+
+    if (!found) {
+        if (prefExecutable) {
+            availInterpList.appendItem(prefExecutable,prefExecutable);
+            availInterpList.selectedIndex = availInterpList.childNodes.length - 1;
+        } else {
             availInterpList.selectedIndex = 0;
         }
     }
@@ -96,12 +94,11 @@ function PrefGolang_PopulateGotoolInterps(name)
 function PrefGolang_OnLoad()
 {
     appInfoEx.golang = Components.classes["@activestate.com/koAppInfoEx?app=Go;1"].
-            createInstance(Components.interfaces.koIAppInfoEx);
+            getService(Components.interfaces.koIAppInfoEx);
     appInfoEx.gocode = Components.classes["@activestate.com/koAppInfoEx?app=Gocode;1"].
-            createInstance(Components.interfaces.koIAppInfoEx);
+            getService(Components.interfaces.koIAppInfoEx);
     appInfoEx.godef = Components.classes["@activestate.com/koAppInfoEx?app=Godef;1"].
-            createInstance(Components.interfaces.koIAppInfoEx);
-    prefExecutable = parent.hPrefWindow.prefset.getString('golangDefaultLocation', '');
+            getService(Components.interfaces.koIAppInfoEx);
     PrefGolang_PopulateGolangInterps();
     PrefGolang_PopulateGotoolInterps('gocode');
     PrefGolang_PopulateGotoolInterps('godef');
