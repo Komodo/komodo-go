@@ -14,9 +14,10 @@ import logging
 log = logging.getLogger('koGoAppInfo')
 #log.setLevel(logging.DEBUG)
 
-dirSvc = components.classes["@activestate.com/koDirs;1"].\
-            createInstance(components.interfaces.koIDirs)
-componentsDir = sys.path.append(os.path.join(dirSvc.mozBinDir, "components"))
+resourcesDir = components.classes["@mozilla.org/file/directory_service;1"].\
+            getService(components.interfaces.nsIDirectoryServiceProvider).\
+            getFile("GreD")[0].path
+componentsDir = os.path.join(resourcesDir, "components")
 sys.path.append(componentsDir)
 try:
     from koAppInfo import KoAppInfoEx
