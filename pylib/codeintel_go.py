@@ -426,9 +426,16 @@ class GoCILEDriver(CILEDriver):
             raise CodeIntelError("Unable to locate go executable")
         if self._gooutline_executable_and_error is None or go_exe != self._gooutline_executable_and_error[0]:
             self._gooutline_executable_and_error = (go_exe, None, "Unknown Error")
+            
+            import tempfile
+            tempdir = tempfile.gettempdir()
+            outline_exe = os.path.join(tempdir, "outline")
+            if sys.platform.startswith("win"):
+                outline_exe += ".exe"
+
             outline_src = os.path.join(self.golib_dir, "outline.go")
             cmd = [go_exe, "build", outline_src]
-            cwd = self.golib_dir
+            cwd = tempdir
             env = buf.env.get_all_envvars()
             try:
                 # Compile the executable.
@@ -436,9 +443,6 @@ class GoCILEDriver(CILEDriver):
                 output, error = p.communicate()
                 if error:
                     log.warn("'%s' stderr: [%s]", cmd, error)
-                outline_exe = outline_src.rstrip(".go")
-                if sys.platform.startswith("win"):
-                    outline_exe += ".exe"
                 # Remember the executable.
                 self._gooutline_executable_and_error = (go_exe, outline_exe, None)
             except Exception, ex:
