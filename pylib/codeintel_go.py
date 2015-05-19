@@ -366,7 +366,7 @@ class GoLangIntel(CitadelLangIntel,
 
     def get_go_exe(self, env):
         golang_path = env.get_pref("golangDefaultLocation", "")
-        if golang_path:
+        if golang_path and golang_path != "":
             return golang_path
         path = [d.strip()
                 for d in env.get_envvar("PATH", "").split(os.pathsep)
@@ -374,7 +374,7 @@ class GoLangIntel(CitadelLangIntel,
         try:
             return which.which('go', path=path)
         except which.WhichError:
-            return None
+            return 'go' # Might as well go for broke
 
     def _get_gotool(self, tool_name, env):
         # First try the pref
