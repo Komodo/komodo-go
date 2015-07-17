@@ -8,9 +8,6 @@ var _bundle = Components.classes["@mozilla.org/intl/stringbundle;1"]
             .getService(Components.interfaces.nsIStringBundleService)
             .createBundle("chrome://komodo/locale/pref/pref-languages.properties");
 var log = ko.logging.getLogger("pref.pref-golang");
-var prefs = Components.classes["@activestate.com/koPrefService;1"].
-    getService(Components.interfaces.koIPrefService).prefs;
-var $ = require("ko/dom");
 //---- functions
 
 function OnPreferencePageOK(prefset)
@@ -164,13 +161,8 @@ function PrefGolang_checkVersion()
 }
 
 function switchToEnvironmentTab() {
-    var showAdvanced = prefs.getBoolean("prefs_show_advanced", false);
     var mainPrefWindow = parent;
-    if (!showAdvanced) {
-        $("#toggleAdvanced", mainPrefWindow.document).attr("checked", "true")
-        window.alert("\"Show Advanced\" checkbox was checked to move to Environment tab");
-        mainPrefWindow.toggleAdvanced();
-    }
+    mainPrefWindow.forceAdvanced();
     mainPrefWindow.hPrefWindow.helper.selectRowById("environItem");
     mainPrefWindow.hPrefWindow.switchPage();
 }
