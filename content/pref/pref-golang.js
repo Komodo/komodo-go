@@ -162,7 +162,6 @@ function PrefGolang_checkVersion()
 
 function switchToEnvironmentTab() {
     var mainPrefWindow = parent;
-    mainPrefWindow.forceAdvanced();
     mainPrefWindow.hPrefWindow.helper.selectRowById("environItem");
     mainPrefWindow.hPrefWindow.switchPage();
 }
