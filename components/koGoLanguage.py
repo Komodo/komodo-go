@@ -115,8 +115,8 @@ on these two lines */
                 go_formatter_prefset.setStringPref("formatter_name", "generic")
                 args_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
                 args_prefset.id = "genericFormatterPrefs"
-                args_prefset.setStringPref("executable", "%(go)")
-                args_prefset.setStringPref("arguments", "fmt")
+                args_prefset.setStringPref("executable", "%(go)fmt")
+                args_prefset.setStringPref("arguments", "-w=false")
                 go_formatter_prefset.setPref("genericFormatterPrefs", args_prefset)
                 formatters.appendString(uuid)
                 globalPrefs.setPref(uuid, go_formatter_prefset)
