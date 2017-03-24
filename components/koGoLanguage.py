@@ -88,39 +88,6 @@ on these two lines */
                          style_list=(sci_constants.SCE_C_OPERATOR,),
                          skippable_chars_by_style={ sci_constants.SCE_C_OPERATOR : "])",},
                          for_check=True)
-        # And add the new default prefs if they don't exist
-        globalPrefs = components.classes["@activestate.com/koPrefService;1"]\
-                          .getService(components.interfaces.koIPrefService).prefs
-        # Chunk adding prefs based on which ones they were added with.
-        if not globalPrefs.hasPref("gocodeDefaultLocation"):
-            globalPrefs.setStringPref("gocodeDefaultLocation", "")
-        if not globalPrefs.hasPref("godefDefaultLocation"):
-            globalPrefs.setStringPref("godefDefaultLocation", "")
-        if not globalPrefs.hasPref("golangDefaultLocation"):
-            globalPrefs.setStringPref("golangDefaultLocation", "")
-            globalPrefs.setStringPref("Go/newEncoding", "utf-8")
-            globalPrefs.setLongPref("Go/indentWidth", 8)
-            globalPrefs.setBooleanPref("Go/useTabs", True)
-
-        # Add the go formatter.
-        if not globalPrefs.getBoolean("haveInstalledGoFormatter", False):
-            if globalPrefs.hasPref("configuredFormatters"):
-                formatters = globalPrefs.getPref("configuredFormatters")
-                go_formatter_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
-                uuid = "{cf500001-ec59-4047-86e7-369d257f4b80}"
-                go_formatter_prefset.id = uuid
-                go_formatter_prefset.setStringPref("lang", "Go")
-                go_formatter_prefset.setStringPref("name", "GoFmt")
-                go_formatter_prefset.setStringPref("uuid", uuid)
-                go_formatter_prefset.setStringPref("formatter_name", "generic")
-                args_prefset = components.classes['@activestate.com/koPreferenceSet;1'].createInstance(components.interfaces.koIPreferenceSet)
-                args_prefset.id = "genericFormatterPrefs"
-                args_prefset.setStringPref("executable", "%(go)fmt")
-                args_prefset.setStringPref("arguments", "-w=false")
-                go_formatter_prefset.setPref("genericFormatterPrefs", args_prefset)
-                formatters.appendString(uuid)
-                globalPrefs.setPref(uuid, go_formatter_prefset)
-            globalPrefs.setBoolean("haveInstalledGoFormatter", True)
 
         # Add extensible items (available in komodo 9 and higher).
         if 'koIInterpolationService' in components.interfaces.keys():
