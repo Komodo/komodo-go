@@ -48,7 +48,7 @@ class KoGolangInfoEx(KoAppInfoEx):
         p = process.ProcessOpen(argv, stdin=None, env=env)
         stdout, stderr = p.communicate()
         pattern = re.compile("go version\s+go\s*(\d+(?:\.\d+){0,2})")
-        match = pattern.match(stdout)
+        match = pattern.search(stdout)
         if match:
             return match.group(1)
         else:
