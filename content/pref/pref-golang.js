@@ -112,15 +112,6 @@ function PrefGolang_OnLoad()
         var goPath = envSvc.get("GOPATH");
         if (!goPath) {
             hasGOPATH = false;
-        } else {
-            let osPathSvc = Components.classes["@activestate.com/koOsPath;1"]
-                    .getService(Components.interfaces.koIOsPath);
-            if (!osPathSvc.exists(goPath) || !osPathSvc.isdir(goPath)) {
-                log.warn("The GOPATH environment variable is set but "
-                          + goPath
-                          + " doesn't name a directory");
-                hasGOPATH = false;
-            }
         }
     }
     gopathNotSetVbox.collapsed = hasGOPATH;
