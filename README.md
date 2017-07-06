@@ -29,5 +29,5 @@ from Komodo 9.
 # Building
 
 - Find the 'koext' binary that is within your Komodo install (within sdk/bin).
-- Run 'koext build -i golib' from the repository root, it should produce an .xpi for you.
+- Run 'koext build' from the repository root, it should produce an .xpi for you.
 - Open this .xpi with Komodo to install it.
