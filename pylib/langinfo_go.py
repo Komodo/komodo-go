@@ -27,7 +27,11 @@ if not styles.StateMap.has_key(lang):
 
 typeMap = {
     "func": "FUN",
-    "package": "MOD"
+    "package": "MOD",
+    "var": "VAR",
+    "const": "CNST",
+    "module": "MOD",
+    "type": "BI"
 }
 
 class GoLangIntel():
@@ -186,6 +190,7 @@ class GoLangIntel():
             symbols.append({
                 "name": completion["name"],
                 "typehint": completion["type"],
+                "source": "buffer",
                 "type": typ,
                 "filename": "",
                 "line": None,
