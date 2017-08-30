@@ -17,7 +17,6 @@ import which
 import tempfile
 
 log = logging.getLogger("codeintel-go")
-log.setLevel(10)
 
 lang = "Go"
 import styles
