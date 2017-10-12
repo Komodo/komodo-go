@@ -23,7 +23,8 @@ function PrefGolang_PopulateGolangInterps()
 {
     var availInterpList = document.getElementById("golangDefaultLocation");
     var prefExecutable = parent.hPrefWindow.prefset.getString('golangDefaultLocation', '')
-
+    if(require("sdk/system").platform == "winnt")
+        prefExecutable = prefExecutable.toLowerCase();
     // remove any existing items and add a "finding..." one
     availInterpList.removeAllItems();
     availInterpList.appendItem(_bundle.formatStringFromName("findingInterpreters.label", [programmingLanguage], 1));
